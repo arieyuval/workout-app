@@ -15,8 +15,9 @@ const muscleGroups: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms
 export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: AddExerciseModalProps) {
   const [exerciseName, setExerciseName] = useState('');
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>('Chest');
-  const [defaultPrReps, setDefaultPrReps] = useState(1);
+  const [defaultPrReps, setDefaultPrReps] = useState<number | ''>('');
   const [prWeight, setPrWeight] = useState<number | ''>('');
+  const [prReps, setPrReps] = useState<number | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,6 +29,17 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
 
     if (!exerciseName.trim()) {
       setError('Exercise name is required');
+      return;
+    }
+
+    if (defaultPrReps === '' || defaultPrReps < 1 || defaultPrReps > 50) {
+      setError('Default PR reps must be between 1 and 50');
+      return;
+    }
+
+    // Validate PR inputs - both reps and weight must be provided together
+    if ((prWeight !== '' && prReps === '') || (prWeight === '' && prReps !== '')) {
+      setError('Please provide both reps and weight for the initial PR, or leave both empty');
       return;
     }
 
@@ -51,15 +63,15 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
 
       const newExercise = await exerciseResponse.json();
 
-      // If PR weight is provided, create the initial set
-      if (prWeight !== '' && prWeight > 0) {
+      // If PR weight and reps are provided, create the initial set
+      if (prWeight !== '' && prWeight > 0 && prReps !== '' && prReps > 0) {
         const setResponse = await fetch('/api/sets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             exercise_id: newExercise.id,
             weight: prWeight,
-            reps: defaultPrReps,
+            reps: prReps,
             date: new Date().toISOString(),
           }),
         });
@@ -72,8 +84,9 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
       // Reset form
       setExerciseName('');
       setMuscleGroup('Chest');
-      setDefaultPrReps(1);
+      setDefaultPrReps('');
       setPrWeight('');
+      setPrReps('');
 
       // Notify parent and close
       onExerciseAdded();
@@ -90,8 +103,9 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
     if (!isSubmitting) {
       setExerciseName('');
       setMuscleGroup('Chest');
-      setDefaultPrReps(1);
+      setDefaultPrReps('');
       setPrWeight('');
+      setPrReps('');
       setError('');
       onClose();
     }
@@ -166,7 +180,8 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
               min="1"
               max="50"
               value={defaultPrReps}
-              onChange={(e) => setDefaultPrReps(parseInt(e.target.value) || 1)}
+              onChange={(e) => setDefaultPrReps(e.target.value === '' ? '' : parseInt(e.target.value))}
+              placeholder="e.g., 1"
               disabled={isSubmitting}
               className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
               required
@@ -176,25 +191,43 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
             </p>
           </div>
 
-          {/* Initial PR Weight (Optional) */}
+          {/* Initial PR (Optional) */}
           <div>
-            <label htmlFor="pr-weight" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Initial PR Weight (Optional)
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Initial PR (Optional)
             </label>
-            <input
-              id="pr-weight"
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={prWeight}
-              onChange={(e) => setPrWeight(e.target.value === '' ? '' : parseFloat(e.target.value))}
-              placeholder="e.g., 225"
-              disabled={isSubmitting}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
-            />
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <input
+                  id="pr-reps-input"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  value={prReps}
+                  onChange={(e) => setPrReps(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  placeholder="Reps"
+                  disabled={isSubmitting}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
+                />
+              </div>
+              <span className="flex items-center text-gray-400 text-lg">×</span>
+              <div className="flex-1">
+                <input
+                  id="pr-weight"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min="0"
+                  value={prWeight}
+                  onChange={(e) => setPrWeight(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  placeholder="Weight"
+                  disabled={isSubmitting}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
+                />
+              </div>
+            </div>
             <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              Add your current PR if you know it (in lbs)
+              Add your current PR if you know it (e.g., 5 reps × 225 lbs)
             </p>
           </div>
 
