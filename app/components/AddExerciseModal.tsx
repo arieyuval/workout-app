@@ -327,7 +327,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
                 </div>
               </div>
               <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                Add your initial session if you'd like (e.g., 3.5 miles / 30 minutes)
+                Add your initial session if you would like (e.g., 3.5 miles / 30 minutes)
               </p>
             </div>
           )}
