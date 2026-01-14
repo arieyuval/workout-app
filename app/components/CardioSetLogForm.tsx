@@ -27,26 +27,36 @@ export default function CardioSetLogForm({ exerciseId, lastSet, onSetLogged }: C
     setIsSubmitting(true);
 
     try {
+      const payload = {
+        exercise_id: exerciseId,
+        distance,
+        duration,
+        date: new Date().toISOString(),
+      };
+      console.log('Sending cardio set payload:', payload);
+
       const response = await fetch('/api/sets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          exercise_id: exerciseId,
-          distance,
-          duration,
-          date: new Date().toISOString(),
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error('Failed to log session');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API error response:', errorData);
+        throw new Error(errorData.error || 'Failed to log session');
+      }
+
+      const result = await response.json();
+      console.log('Successfully logged session:', result);
 
       // Reset form and notify parent
       onSetLogged();
     } catch (err) {
       console.error('Error logging session:', err);
-      setError('Failed to log session. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to log session. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

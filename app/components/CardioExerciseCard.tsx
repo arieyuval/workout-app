@@ -26,20 +26,30 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, on
     setIsSubmitting(true);
 
     try {
+      const payload = {
+        exercise_id: exercise.id,
+        distance,
+        duration,
+        date: new Date().toISOString(),
+      };
+      console.log('Quick logging cardio set:', payload);
+
       const response = await fetch('/api/sets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          exercise_id: exercise.id,
-          distance,
-          duration,
-          date: new Date().toISOString(),
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error('Failed to log set');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Quick log API error:', errorData);
+        throw new Error(errorData.error || 'Failed to log set');
+      }
+
+      const result = await response.json();
+      console.log('Quick log success:', result);
 
       // Call parent refresh function
       if (onSetLogged) {

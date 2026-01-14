@@ -29,11 +29,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body: WorkoutSetInsert = await request.json();
+    console.log('Logging set with data:', body);
 
-    // Validate required fields
-    if (!body.exercise_id || body.weight === undefined || body.reps === undefined) {
+    // Validate required fields - either (weight + reps) OR (distance + duration)
+    if (!body.exercise_id) {
       return NextResponse.json(
-        { error: 'exercise_id, weight, and reps are required' },
+        { error: 'exercise_id is required' },
+        { status: 400 }
+      );
+    }
+
+    const hasStrengthData = body.weight !== undefined && body.reps !== undefined;
+    const hasCardioData = body.distance !== undefined && body.duration !== undefined;
+
+    if (!hasStrengthData && !hasCardioData) {
+      return NextResponse.json(
+        { error: 'Either (weight and reps) or (distance and duration) are required' },
         { status: 400 }
       );
     }
@@ -56,8 +67,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newSet, { status: 201 });
   } catch (error) {
     console.error('Error in POST /api/sets:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to log set' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

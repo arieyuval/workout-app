@@ -113,6 +113,8 @@ export async function getSetHistory(exerciseId: string): Promise<WorkoutSet[]> {
  * @param setData - The set data to insert
  */
 export async function logSet(setData: WorkoutSetInsert): Promise<WorkoutSet | null> {
+  console.log('logSet called with data:', setData);
+
   const { data, error } = await supabase
     .from('sets')
     .insert(setData)
@@ -120,10 +122,12 @@ export async function logSet(setData: WorkoutSetInsert): Promise<WorkoutSet | nu
     .single();
 
   if (error) {
-    console.error('Error logging set:', error);
-    return null;
+    console.error('Supabase error in logSet:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    throw new Error(`Database error: ${error.message || JSON.stringify(error)}`);
   }
 
+  console.log('Successfully logged set:', data);
   return data;
 }
 
