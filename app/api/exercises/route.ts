@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body: ExerciseInsert = await request.json();
+    console.log('Creating exercise with data:', body);
 
     const { data, error } = await supabase
       .from('exercises')
@@ -31,8 +32,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      console.error('Supabase error:', error);
       return NextResponse.json(
-        { error: 'Failed to create exercise' },
+        { error: 'Failed to create exercise', details: error.message },
         { status: 500 }
       );
     }
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in POST /api/exercises:', error);
     return NextResponse.json(
-      { error: 'Failed to create exercise' },
+      { error: 'Failed to create exercise', details: String(error) },
       { status: 500 }
     );
   }

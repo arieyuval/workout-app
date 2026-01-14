@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import ExerciseDetail from '@/app/components/ExerciseDetail';
+import CardioExerciseDetail from '@/app/components/CardioExerciseDetail';
 import { getExercise, getSetHistory, getPersonalRecords, getLastSet } from '@/lib/data-utils';
 
 export default async function ExercisePage({
@@ -39,12 +40,20 @@ export default async function ExercisePage({
       </div>
 
       {/* Exercise Detail Component */}
-      <ExerciseDetail
-        exercise={exercise}
-        initialSets={sets}
-        initialPRs={prs}
-        lastSet={lastSet}
-      />
+      {exercise.exercise_type === 'cardio' ? (
+        <CardioExerciseDetail
+          exercise={exercise}
+          initialSets={sets}
+          lastSet={lastSet}
+        />
+      ) : (
+        <ExerciseDetail
+          exercise={exercise}
+          initialSets={sets}
+          initialPRs={prs}
+          lastSet={lastSet}
+        />
+      )}
     </div>
   );
 }

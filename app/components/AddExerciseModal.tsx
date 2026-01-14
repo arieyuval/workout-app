@@ -73,7 +73,9 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
       });
 
       if (!exerciseResponse.ok) {
-        throw new Error('Failed to create exercise');
+        const errorData = await exerciseResponse.json();
+        console.error('API Error:', errorData);
+        throw new Error('Failed to create exercise: ' + JSON.stringify(errorData));
       }
 
       const newExercise = await exerciseResponse.json();
