@@ -76,7 +76,7 @@ export default function ExerciseCard({ exercise, lastSet, currentMax, onSetLogge
           {/* Last Set */}
           <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-md">
             <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mb-1">
-              Last Set
+              Last Set (exlcluding today)
             </div>
             {lastSet ? (
               <div className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
