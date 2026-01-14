@@ -33,8 +33,8 @@ export default function ExerciseDetail({
     async function fetchMax() {
       try {
         const max = sets
-          .filter((s) => s.reps >= selectedRepMax)
-          .reduce((max, set) => Math.max(max, set.weight), 0);
+          .filter((s) => s.reps !== undefined && s.reps >= selectedRepMax)
+          .reduce((max, set) => Math.max(max, set.weight!), 0);
         setCurrentMax(max || null);
       } catch (error) {
         console.error('Error calculating max:', error);
@@ -56,9 +56,9 @@ export default function ExerciseDetail({
 
       for (const reps of repRanges) {
         const maxSet = newSets
-          .filter((s: WorkoutSet) => s.reps >= reps)
+          .filter((s: WorkoutSet) => s.reps !== undefined && s.reps >= reps)
           .reduce((max: WorkoutSet | null, set: WorkoutSet) =>
-            !max || set.weight > max.weight ? set : max
+            !max || (set.weight !== undefined && max.weight !== undefined && set.weight > max.weight) ? set : max
           , null);
 
         if (maxSet) {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { X, Plus } from 'lucide-react';
-import type { MuscleGroup } from '@/lib/types';
+import type { MuscleGroup, ExerciseType } from '@/lib/types';
 
 interface AddExerciseModalProps {
   isOpen: boolean;
@@ -10,14 +10,19 @@ interface AddExerciseModalProps {
   onExerciseAdded: () => void;
 }
 
-const muscleGroups: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
+const strengthMuscleGroups: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
 
 export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: AddExerciseModalProps) {
   const [exerciseName, setExerciseName] = useState('');
+  const [exerciseType, setExerciseType] = useState<ExerciseType>('strength');
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>('Chest');
   const [defaultPrReps, setDefaultPrReps] = useState<number | ''>('');
+  // Strength PR fields
   const [prWeight, setPrWeight] = useState<number | ''>('');
   const [prReps, setPrReps] = useState<number | ''>('');
+  // Cardio PR fields
+  const [prDistance, setPrDistance] = useState<number | ''>('');
+  const [prDuration, setPrDuration] = useState<number | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -32,15 +37,24 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
       return;
     }
 
-    if (defaultPrReps === '' || defaultPrReps < 1 || defaultPrReps > 50) {
-      setError('Default PR reps must be between 1 and 50');
-      return;
-    }
+    // Validate based on exercise type
+    if (exerciseType === 'strength') {
+      if (defaultPrReps === '' || defaultPrReps < 1 || defaultPrReps > 50) {
+        setError('Default PR reps must be between 1 and 50');
+        return;
+      }
 
-    // Validate PR inputs - both reps and weight must be provided together
-    if ((prWeight !== '' && prReps === '') || (prWeight === '' && prReps !== '')) {
-      setError('Please provide both reps and weight for the initial PR, or leave both empty');
-      return;
+      // Validate PR inputs - both reps and weight must be provided together
+      if ((prWeight !== '' && prReps === '') || (prWeight === '' && prReps !== '')) {
+        setError('Please provide both reps and weight for the initial PR, or leave both empty');
+        return;
+      }
+    } else if (exerciseType === 'cardio') {
+      // Validate cardio PR inputs - both distance and duration must be provided together
+      if ((prDistance !== '' && prDuration === '') || (prDistance === '' && prDuration !== '')) {
+        setError('Please provide both distance and duration for the initial session, or leave both empty');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -52,8 +66,9 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: exerciseName.trim(),
-          muscle_group: muscleGroup,
-          default_pr_reps: defaultPrReps,
+          muscle_group: exerciseType === 'cardio' ? 'Cardio' : muscleGroup,
+          exercise_type: exerciseType,
+          default_pr_reps: exerciseType === 'strength' ? defaultPrReps : 1, // Default to 1 for cardio
         }),
       });
 
@@ -63,8 +78,8 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
 
       const newExercise = await exerciseResponse.json();
 
-      // If PR weight and reps are provided, create the initial set
-      if (prWeight !== '' && prWeight > 0 && prReps !== '' && prReps > 0) {
+      // Create initial set based on exercise type
+      if (exerciseType === 'strength' && prWeight !== '' && prWeight > 0 && prReps !== '' && prReps > 0) {
         const setResponse = await fetch('/api/sets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -79,14 +94,32 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
         if (!setResponse.ok) {
           console.error('Failed to create initial PR set');
         }
+      } else if (exerciseType === 'cardio' && prDistance !== '' && prDistance > 0 && prDuration !== '' && prDuration > 0) {
+        const setResponse = await fetch('/api/sets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            exercise_id: newExercise.id,
+            distance: prDistance,
+            duration: prDuration,
+            date: new Date().toISOString(),
+          }),
+        });
+
+        if (!setResponse.ok) {
+          console.error('Failed to create initial cardio session');
+        }
       }
 
       // Reset form
       setExerciseName('');
+      setExerciseType('strength');
       setMuscleGroup('Chest');
       setDefaultPrReps('');
       setPrWeight('');
       setPrReps('');
+      setPrDistance('');
+      setPrDuration('');
 
       // Notify parent and close
       onExerciseAdded();
@@ -102,10 +135,13 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
   const handleClose = () => {
     if (!isSubmitting) {
       setExerciseName('');
+      setExerciseType('strength');
       setMuscleGroup('Chest');
       setDefaultPrReps('');
       setPrWeight('');
       setPrReps('');
+      setPrDistance('');
+      setPrDuration('');
       setError('');
       onClose();
     }
@@ -147,89 +183,154 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
             />
           </div>
 
-          {/* Muscle Group */}
+          {/* Exercise Type */}
           <div>
-            <label htmlFor="muscle-group" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Muscle Group *
+            <label htmlFor="exercise-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Exercise Type *
             </label>
             <select
-              id="muscle-group"
-              value={muscleGroup}
-              onChange={(e) => setMuscleGroup(e.target.value as MuscleGroup)}
+              id="exercise-type"
+              value={exerciseType}
+              onChange={(e) => setExerciseType(e.target.value as ExerciseType)}
               disabled={isSubmitting}
               className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
               required
             >
-              {muscleGroups.map((group) => (
-                <option key={group} value={group}>
-                  {group}
-                </option>
-              ))}
+              <option value="strength">Strength Training</option>
+              <option value="cardio">Cardio</option>
             </select>
           </div>
 
-          {/* Default PR Reps */}
-          <div>
-            <label htmlFor="pr-reps" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Default PR Reps *
-            </label>
-            <input
-              id="pr-reps"
-              type="number"
-              inputMode="numeric"
-              min="1"
-              max="50"
-              value={defaultPrReps}
-              onChange={(e) => setDefaultPrReps(e.target.value === '' ? '' : parseInt(e.target.value))}
-              placeholder="e.g., 1"
-              disabled={isSubmitting}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
-              required
-            />
-            <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              The rep max to display on the card (e.g., 1 for 1RM)
-            </p>
-          </div>
+          {/* Muscle Group (only for strength) */}
+          {exerciseType === 'strength' && (
+            <>
+              <div>
+                <label htmlFor="muscle-group" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Muscle Group *
+                </label>
+                <select
+                  id="muscle-group"
+                  value={muscleGroup}
+                  onChange={(e) => setMuscleGroup(e.target.value as MuscleGroup)}
+                  disabled={isSubmitting}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
+                  required
+                >
+                  {strengthMuscleGroups.map((group: MuscleGroup) => (
+                    <option key={group} value={group}>
+                      {group}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Initial PR (Optional) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Initial PR (Optional)
-            </label>
-            <div className="flex gap-2">
-              <div className="flex-1">
+              {/* Default PR Reps */}
+              <div>
+                <label htmlFor="pr-reps" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Default PR Reps *
+                </label>
                 <input
-                  id="pr-reps-input"
+                  id="pr-reps"
                   type="number"
                   inputMode="numeric"
                   min="1"
-                  value={prReps}
-                  onChange={(e) => setPrReps(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  placeholder="Reps"
+                  max="50"
+                  value={defaultPrReps}
+                  onChange={(e) => setDefaultPrReps(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  placeholder="e.g., 1"
                   disabled={isSubmitting}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
+                  required
                 />
+                <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                  The rep max to display on the card (e.g., 1 for 1RM)
+                </p>
               </div>
-              <span className="flex items-center text-gray-400 text-lg">×</span>
-              <div className="flex-1">
-                <input
-                  id="pr-weight"
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  min="0"
-                  value={prWeight}
-                  onChange={(e) => setPrWeight(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                  placeholder="Weight"
-                  disabled={isSubmitting}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
-                />
+
+              {/* Initial PR (Optional) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Initial PR (Optional)
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <input
+                      id="pr-reps-input"
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      value={prReps}
+                      onChange={(e) => setPrReps(e.target.value === '' ? '' : parseInt(e.target.value))}
+                      placeholder="Reps"
+                      disabled={isSubmitting}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
+                    />
+                  </div>
+                  <span className="flex items-center text-gray-400 text-lg">×</span>
+                  <div className="flex-1">
+                    <input
+                      id="pr-weight"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      value={prWeight}
+                      onChange={(e) => setPrWeight(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      placeholder="Weight"
+                      disabled={isSubmitting}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
+                    />
+                  </div>
+                </div>
+                <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                  Add your current PR if you know it (e.g., 5 reps × 225 lbs)
+                </p>
               </div>
+            </>
+          )}
+
+          {/* Cardio Initial Session (Optional) */}
+          {exerciseType === 'cardio' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Initial Session (Optional)
+              </label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <input
+                    id="pr-distance"
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="0"
+                    value={prDistance}
+                    onChange={(e) => setPrDistance(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    placeholder="Distance"
+                    disabled={isSubmitting}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
+                  />
+                </div>
+                <span className="flex items-center text-gray-400 text-lg">/</span>
+                <div className="flex-1">
+                  <input
+                    id="pr-duration"
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="0"
+                    value={prDuration}
+                    onChange={(e) => setPrDuration(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    placeholder="Minutes"
+                    disabled={isSubmitting}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
+                  />
+                </div>
+              </div>
+              <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                Add your initial session if you'd like (e.g., 3.5 miles / 30 minutes)
+              </p>
             </div>
-            <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              Add your current PR if you know it (e.g., 5 reps × 225 lbs)
-            </p>
-          </div>
+          )}
 
           {/* Error Message */}
           {error && (

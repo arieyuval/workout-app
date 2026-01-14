@@ -32,10 +32,10 @@ export default function HistoryTable({ sets }: HistoryTableProps) {
         comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
         break;
       case 'weight':
-        comparison = a.weight - b.weight;
+        comparison = (a.weight || 0) - (b.weight || 0);
         break;
       case 'reps':
-        comparison = a.reps - b.reps;
+        comparison = (a.reps || 0) - (b.reps || 0);
         break;
     }
 

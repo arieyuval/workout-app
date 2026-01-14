@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import SearchBar from './components/SearchBar';
 import MuscleTabs from './components/MuscleTabs';
 import ExerciseCard from './components/ExerciseCard';
+import CardioExerciseCard from './components/CardioExerciseCard';
 import AddExerciseModal from './components/AddExerciseModal';
 import type { Exercise, WorkoutSet, MuscleGroup } from '@/lib/types';
 
@@ -84,14 +85,24 @@ export default function Home() {
     return previousSets.length > 0 ? previousSets[0] : null;
   };
 
-  // Helper to get current max for default PR reps
+  // Helper to get current max for default PR reps (strength exercises)
   const getCurrentMax = (exerciseId: string, defaultPrReps: number): number | null => {
     const exerciseSets = sets[exerciseId] || [];
-    const validSets = exerciseSets.filter((set) => set.reps >= defaultPrReps);
+    const validSets = exerciseSets.filter((set) => set.reps !== undefined && set.reps >= defaultPrReps);
 
     if (validSets.length === 0) return null;
 
-    return Math.max(...validSets.map((set) => set.weight));
+    return Math.max(...validSets.map((set) => set.weight!));
+  };
+
+  // Helper to get best distance for cardio exercises
+  const getBestDistance = (exerciseId: string): number | null => {
+    const exerciseSets = sets[exerciseId] || [];
+    const validSets = exerciseSets.filter((set) => set.distance !== undefined && set.distance > 0);
+
+    if (validSets.length === 0) return null;
+
+    return Math.max(...validSets.map((set) => set.distance!));
   };
 
   // Refresh sets for a specific exercise after logging
@@ -151,15 +162,29 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredExercises.map((exercise) => (
-              <ExerciseCard
-                key={exercise.id}
-                exercise={exercise}
-                lastSet={getLastSet(exercise.id)}
-                currentMax={getCurrentMax(exercise.id, exercise.default_pr_reps)}
-                onSetLogged={() => handleSetLogged(exercise.id)}
-              />
-            ))}
+            {filteredExercises.map((exercise) => {
+              if (exercise.exercise_type === 'cardio') {
+                return (
+                  <CardioExerciseCard
+                    key={exercise.id}
+                    exercise={exercise}
+                    lastSet={getLastSet(exercise.id)}
+                    bestDistance={getBestDistance(exercise.id)}
+                    onSetLogged={() => handleSetLogged(exercise.id)}
+                  />
+                );
+              } else {
+                return (
+                  <ExerciseCard
+                    key={exercise.id}
+                    exercise={exercise}
+                    lastSet={getLastSet(exercise.id)}
+                    currentMax={getCurrentMax(exercise.id, exercise.default_pr_reps)}
+                    onSetLogged={() => handleSetLogged(exercise.id)}
+                  />
+                );
+              }
+            })}
           </div>
         )}
         </div>
