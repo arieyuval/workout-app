@@ -13,8 +13,8 @@ interface ExerciseCardProps {
 }
 
 export default function ExerciseCard({ exercise, lastSet, currentMax, onSetLogged }: ExerciseCardProps) {
-  const [weight, setWeight] = useState(lastSet?.weight || 0);
-  const [reps, setReps] = useState(lastSet?.reps || 0);
+  const [weight, setWeight] = useState(0);
+  const [reps, setReps] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 

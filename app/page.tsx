@@ -24,12 +24,19 @@ export default function Home() {
       const data = await response.json();
       setExercises(data);
 
-      // Fetch sets for each exercise
+      // Fetch sets for all exercises in parallel
+      const setsPromises = data.map(async (exercise: Exercise) => {
+        const response = await fetch(`/api/sets?exercise_id=${exercise.id}`);
+        const exerciseSets = await response.json();
+        return { id: exercise.id, sets: exerciseSets };
+      });
+
+      const setsResults = await Promise.all(setsPromises);
+
+      // Convert array to Record
       const setsData: Record<string, WorkoutSet[]> = {};
-      for (const exercise of data) {
-        const setsResponse = await fetch(`/api/sets?exercise_id=${exercise.id}`);
-        const exerciseSets = await setsResponse.json();
-        setsData[exercise.id] = exerciseSets;
+      for (const result of setsResults) {
+        setsData[result.id] = result.sets;
       }
       setSets(setsData);
     } catch (error) {

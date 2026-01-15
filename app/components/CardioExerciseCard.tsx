@@ -13,8 +13,8 @@ interface CardioExerciseCardProps {
 }
 
 export default function CardioExerciseCard({ exercise, lastSet, bestDistance, onSetLogged }: CardioExerciseCardProps) {
-  const [distance, setDistance] = useState(lastSet?.distance || 0);
-  const [duration, setDuration] = useState(lastSet?.duration || 0);
+  const [distance, setDistance] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
