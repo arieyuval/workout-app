@@ -23,17 +23,18 @@ export default function ExerciseDetail({
 }: ExerciseDetailProps) {
   const [sets, setSets] = useState<WorkoutSet[]>(initialSets);
   const [prs, setPRs] = useState<PersonalRecord[]>(initialPRs);
-  const [selectedRepMax, setSelectedRepMax] = useState(exercise.default_pr_reps);
+  const [selectedRepMax, setSelectedRepMax] = useState<number | ''>(exercise.default_pr_reps);
   const [currentMax, setCurrentMax] = useState<number | null>(null);
-  const [defaultPrReps, setDefaultPrReps] = useState(exercise.default_pr_reps);
+  const [defaultPrReps, setDefaultPrReps] = useState<number | ''>(exercise.default_pr_reps);
   const [isUpdatingDefault, setIsUpdatingDefault] = useState(false);
 
   // Fetch current max for selected rep count
   useEffect(() => {
     async function fetchMax() {
       try {
+        const repMax = typeof selectedRepMax === 'number' ? selectedRepMax : 0;
         const max = sets
-          .filter((s) => s.reps !== undefined && s.reps >= selectedRepMax)
+          .filter((s) => s.reps !== undefined && s.reps >= repMax)
           .reduce((max, set) => Math.max(max, set.weight!), 0);
         setCurrentMax(max || null);
       } catch (error) {
@@ -76,9 +77,9 @@ export default function ExerciseDetail({
     }
   };
 
-  const handleUpdateDefaultPrReps = async (newReps: number) => {
+  const handleUpdateDefaultPrReps = async (newReps: number | '') => {
     // Validate input
-    if (newReps < 1 || newReps > 50 || !Number.isInteger(newReps)) {
+    if (newReps === '' || newReps < 1 || newReps > 50 || !Number.isInteger(newReps)) {
       return;
     }
 
@@ -124,23 +125,24 @@ export default function ExerciseDetail({
               <input
                 type="number"
                 inputMode="numeric"
-                min="1"
+                min="0"
                 max="50"
                 value={defaultPrReps}
                 onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  if (!isNaN(value)) {
+                  const value = e.target.value === '' ? '' : parseInt(e.target.value);
+                  if (value === '' || !isNaN(value)) {
                     setDefaultPrReps(value);
                   }
                 }}
                 onBlur={(e) => {
-                  const value = parseInt(e.target.value);
-                  if (!isNaN(value) && value !== exercise.default_pr_reps) {
+                  const value = e.target.value === '' ? '' : parseInt(e.target.value);
+                  if (value !== '' && !isNaN(value) && value !== exercise.default_pr_reps) {
                     handleUpdateDefaultPrReps(value);
                   }
                 }}
                 disabled={isUpdatingDefault}
                 className="w-14 px-2 py-1 text-xs sm:text-sm text-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 touch-manipulation"
+                placeholder="0"
               />
               <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                 RM
@@ -184,17 +186,26 @@ export default function ExerciseDetail({
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
                 Rep Max
               </label>
-              <select
-                value={selectedRepMax}
-                onChange={(e) => setSelectedRepMax(parseInt(e.target.value))}
-                className="px-3 py-2 text-sm sm:text-base bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
-              >
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rep) => (
-                  <option key={rep} value={rep}>
-                    {rep}RM
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  max="50"
+                  value={selectedRepMax}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? '' : parseInt(e.target.value);
+                    if (value === '' || (!isNaN(value) && value >= 0 && value <= 50)) {
+                      setSelectedRepMax(value);
+                    }
+                  }}
+                  className="w-16 px-3 py-2 text-sm sm:text-base text-center bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+                  placeholder="0"
+                />
+                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                  RM
+                </span>
+              </div>
             </div>
             <div className="flex-1">
               <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">

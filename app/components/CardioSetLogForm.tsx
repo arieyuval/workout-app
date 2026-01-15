@@ -14,6 +14,7 @@ export default function CardioSetLogForm({ exerciseId, lastSet, onSetLogged }: C
   const [duration, setDuration] = useState(lastSet?.duration || 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +53,15 @@ export default function CardioSetLogForm({ exerciseId, lastSet, onSetLogged }: C
       const result = await response.json();
       console.log('Successfully logged session:', result);
 
-      // Reset form and notify parent
+      // Show success indicator
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+
+      // Reset form fields
+      setDistance(0);
+      setDuration(0);
+
+      // Notify parent
       onSetLogged();
     } catch (err) {
       console.error('Error logging session:', err);
@@ -133,10 +142,21 @@ export default function CardioSetLogForm({ exerciseId, lastSet, onSetLogged }: C
         <button
           type="submit"
           disabled={isSubmitting || distance <= 0 || duration <= 0}
-          className="w-full px-4 py-2 sm:py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 font-medium touch-manipulation"
+          className={`w-full px-4 py-2 sm:py-3 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 font-medium touch-manipulation ${
+            showSuccess
+              ? 'bg-green-600 hover:bg-green-700'
+              : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+          } text-white`}
         >
           {isSubmitting ? (
             <>Logging...</>
+          ) : showSuccess ? (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Logged!
+            </>
           ) : (
             <>
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />

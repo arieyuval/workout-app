@@ -16,6 +16,7 @@ export default function SetLogForm({ exerciseId, onSuccess }: SetLogFormProps) {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +47,10 @@ export default function SetLogForm({ exerciseId, onSuccess }: SetLogFormProps) {
       if (!response.ok) {
         throw new Error('Failed to log set');
       }
+
+      // Show success indicator
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
 
       // Reset form
       setFormData({ weight: 0, reps: 0, notes: '' });
@@ -122,9 +127,22 @@ export default function SetLogForm({ exerciseId, onSuccess }: SetLogFormProps) {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3 sm:py-3 px-6 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation text-base sm:text-base"
+        className={`w-full font-semibold py-3 sm:py-3 px-6 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation text-base sm:text-base flex items-center justify-center gap-2 ${
+          showSuccess ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+        } text-white`}
       >
-        {isSubmitting ? 'Logging...' : 'Log Set'}
+        {isSubmitting ? (
+          'Logging...'
+        ) : showSuccess ? (
+          <>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Logged!
+          </>
+        ) : (
+          'Log Set'
+        )}
       </button>
     </form>
   );

@@ -16,6 +16,7 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, on
   const [distance, setDistance] = useState(lastSet?.distance || 0);
   const [duration, setDuration] = useState(lastSet?.duration || 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleQuickLog = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +51,14 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, on
 
       const result = await response.json();
       console.log('Quick log success:', result);
+
+      // Show success indicator
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+
+      // Reset form fields
+      setDistance(0);
+      setDuration(0);
 
       // Call parent refresh function
       if (onSetLogged) {
@@ -143,11 +152,19 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, on
           <button
             type="submit"
             disabled={isSubmitting || distance <= 0 || duration <= 0}
-            className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation flex items-center gap-1 flex-shrink-0"
+            className={`px-3 sm:px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation flex items-center gap-1 flex-shrink-0 text-white ${
+              showSuccess ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline text-sm">Add</span>
+            {showSuccess ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
+            <span className="hidden sm:inline text-sm">{showSuccess ? 'Done' : 'Add'}</span>
           </button>
         </div>
       </form>
