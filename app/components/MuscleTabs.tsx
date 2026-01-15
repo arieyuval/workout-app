@@ -7,7 +7,7 @@ interface MuscleTabsProps {
   onTabChange: (tab: MuscleGroup) => void;
 }
 
-const muscleGroups: MuscleGroup[] = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Cardio'];
+const muscleGroups: MuscleGroup[] = ['All', 'Back', 'Arms', 'Chest', 'Shoulders', 'Legs', 'Core', 'Cardio'];
 
 export default function MuscleTabs({ activeTab, onTabChange }: MuscleTabsProps) {
   return (

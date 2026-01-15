@@ -65,17 +65,24 @@ export default function Home() {
     };
   }, []);
 
-  // Filter exercises based on active tab and search query
+  // Filter and sort exercises based on active tab, search query, and set count
   const filteredExercises = useMemo(() => {
-    return exercises.filter((exercise) => {
-      const matchesTab = activeTab === 'All' || exercise.muscle_group === activeTab;
-      const matchesSearch =
-        searchQuery === '' ||
-        exercise.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        exercise.muscle_group.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesTab && matchesSearch;
-    });
-  }, [exercises, activeTab, searchQuery]);
+    return exercises
+      .filter((exercise) => {
+        const matchesTab = activeTab === 'All' || exercise.muscle_group === activeTab;
+        const matchesSearch =
+          searchQuery === '' ||
+          exercise.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          exercise.muscle_group.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesTab && matchesSearch;
+      })
+      .sort((a, b) => {
+        // Sort by number of sets logged (most to least)
+        const aSets = sets[a.id]?.length || 0;
+        const bSets = sets[b.id]?.length || 0;
+        return bSets - aSets;
+      });
+  }, [exercises, activeTab, searchQuery, sets]);
 
   // Helper to get last set (excluding today) for an exercise
   const getLastSet = (exerciseId: string): WorkoutSet | null => {
