@@ -136,8 +136,27 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl text-gray-600 dark:text-gray-400">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-4">
+          {/* Dumbbell SVG */}
+          <svg
+            className="w-16 h-16 text-blue-600 dark:text-blue-400 animate-dumbbell"
+            viewBox="0 0 64 64"
+            fill="currentColor"
+          >
+            {/* Left weight plates */}
+            <rect x="4" y="20" width="8" height="24" rx="2" />
+            <rect x="14" y="24" width="6" height="16" rx="1" />
+            {/* Bar */}
+            <rect x="20" y="29" width="24" height="6" rx="1" />
+            {/* Right weight plates */}
+            <rect x="44" y="24" width="6" height="16" rx="1" />
+            <rect x="52" y="20" width="8" height="24" rx="2" />
+          </svg>
+          <p className="text-lg font-medium text-gray-600 dark:text-gray-300 animate-pulse-slow">
+            Loading your workouts...
+          </p>
+        </div>
       </div>
     );
   }
