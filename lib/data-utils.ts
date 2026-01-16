@@ -1,6 +1,20 @@
 import { supabase } from './supabase';
 import type { WorkoutSet, PersonalRecord, WorkoutSetInsert } from './types';
-import { startOfDay, endOfDay } from 'date-fns';
+
+// Default timezone (PST)
+const DEFAULT_TIMEZONE = 'America/Los_Angeles';
+
+/**
+ * Get the start of today in the user's timezone (defaults to PST)
+ * Returns an ISO string representing midnight in local time
+ */
+function getStartOfTodayISO(timezone: string = DEFAULT_TIMEZONE): string {
+  const now = new Date();
+  const year = now.toLocaleString('en-US', { year: 'numeric', timeZone: timezone });
+  const month = now.toLocaleString('en-US', { month: '2-digit', timeZone: timezone });
+  const day = now.toLocaleString('en-US', { day: '2-digit', timeZone: timezone });
+  return `${year}-${month}-${day}T00:00:00.000Z`;
+}
 
 /**
  * Get the most recent set for an exercise
@@ -19,7 +33,7 @@ export async function getLastSet(
     .limit(1);
 
   if (excludeToday) {
-    const todayStart = startOfDay(new Date()).toISOString();
+    const todayStart = getStartOfTodayISO();
     query = query.lt('date', todayStart);
   }
 

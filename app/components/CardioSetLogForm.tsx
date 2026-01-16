@@ -9,6 +9,32 @@ interface CardioSetLogFormProps {
   onSetLogged: () => void;
 }
 
+// Get user's timezone or default to PST
+const getUserTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles';
+  } catch {
+    return 'America/Los_Angeles';
+  }
+};
+
+// Create a date string that preserves the user's local time
+const getLocalDateISO = () => {
+  const now = new Date();
+  const timezone = getUserTimezone();
+
+  // Get the date parts in user's timezone
+  const year = now.toLocaleString('en-US', { year: 'numeric', timeZone: timezone });
+  const month = now.toLocaleString('en-US', { month: '2-digit', timeZone: timezone });
+  const day = now.toLocaleString('en-US', { day: '2-digit', timeZone: timezone });
+  const hour = now.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: timezone }).padStart(2, '0');
+  const minute = now.toLocaleString('en-US', { minute: '2-digit', timeZone: timezone }).padStart(2, '0');
+  const second = now.toLocaleString('en-US', { second: '2-digit', timeZone: timezone }).padStart(2, '0');
+
+  // Return ISO format with the local time (stored as if it were UTC, but representing local time)
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+};
+
 export default function CardioSetLogForm({ exerciseId, lastSet, onSetLogged }: CardioSetLogFormProps) {
   const [distance, setDistance] = useState(lastSet?.distance || 0);
   const [duration, setDuration] = useState(lastSet?.duration || 0);
@@ -32,7 +58,7 @@ export default function CardioSetLogForm({ exerciseId, lastSet, onSetLogged }: C
         exercise_id: exerciseId,
         distance,
         duration,
-        date: new Date().toISOString(),
+        date: getLocalDateISO(),
       };
       console.log('Sending cardio set payload:', payload);
 

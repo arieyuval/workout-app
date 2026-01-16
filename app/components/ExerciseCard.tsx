@@ -12,6 +12,32 @@ interface ExerciseCardProps {
   onSetLogged?: () => void;
 }
 
+// Get user's timezone or default to PST
+const getUserTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles';
+  } catch {
+    return 'America/Los_Angeles';
+  }
+};
+
+// Create a date string that preserves the user's local time
+const getLocalDateISO = () => {
+  const now = new Date();
+  const timezone = getUserTimezone();
+
+  // Get the date parts in user's timezone
+  const year = now.toLocaleString('en-US', { year: 'numeric', timeZone: timezone });
+  const month = now.toLocaleString('en-US', { month: '2-digit', timeZone: timezone });
+  const day = now.toLocaleString('en-US', { day: '2-digit', timeZone: timezone });
+  const hour = now.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: timezone }).padStart(2, '0');
+  const minute = now.toLocaleString('en-US', { minute: '2-digit', timeZone: timezone }).padStart(2, '0');
+  const second = now.toLocaleString('en-US', { second: '2-digit', timeZone: timezone }).padStart(2, '0');
+
+  // Return ISO format with the local time (stored as if it were UTC, but representing local time)
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+};
+
 export default function ExerciseCard({ exercise, lastSet, currentMax, onSetLogged }: ExerciseCardProps) {
   const [weight, setWeight] = useState(0);
   const [reps, setReps] = useState(0);
@@ -36,7 +62,7 @@ export default function ExerciseCard({ exercise, lastSet, currentMax, onSetLogge
           exercise_id: exercise.id,
           weight,
           reps,
-          date: new Date().toISOString(),
+          date: getLocalDateISO(),
         }),
       });
 

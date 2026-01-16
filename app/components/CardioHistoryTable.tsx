@@ -1,52 +1,113 @@
 'use client';
 
-import { useState } from 'react';
-import { format } from 'date-fns';
-import { ArrowUpDown } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { WorkoutSet } from '@/lib/types';
 
 interface CardioHistoryTableProps {
   sets: WorkoutSet[];
 }
 
-type SortField = 'date' | 'distance' | 'duration' | 'pace';
-type SortDirection = 'asc' | 'desc';
+interface DayGroup {
+  date: string;
+  displayDate: string;
+  topSet: WorkoutSet;
+  topPace: number;
+  otherSets: { set: WorkoutSet; pace: number }[];
+}
+
+// Get user's timezone or default to PST
+const getUserTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles';
+  } catch {
+    return 'America/Los_Angeles';
+  }
+};
+
+// Format date in user's timezone
+const formatDateInTimezone = (date: Date, timezone: string, options: Intl.DateTimeFormatOptions) => {
+  return date.toLocaleString('en-US', { ...options, timeZone: timezone });
+};
+
+// Get date key (YYYY-MM-DD) in user's timezone
+const getDateKey = (date: Date, timezone: string) => {
+  const year = date.toLocaleString('en-US', { year: 'numeric', timeZone: timezone });
+  const month = date.toLocaleString('en-US', { month: '2-digit', timeZone: timezone });
+  const day = date.toLocaleString('en-US', { day: '2-digit', timeZone: timezone });
+  return `${year}-${month}-${day}`;
+};
 
 export default function CardioHistoryTable({ sets }: CardioHistoryTableProps) {
-  const [sortField, setSortField] = useState<SortField>('date');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+  const timezone = getUserTimezone();
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('desc');
-    }
+  // Group sets by day and find the top set (best pace) for each day
+  const groupedByDay = useMemo(() => {
+    const groups = new Map<string, WorkoutSet[]>();
+
+    sets.forEach((set) => {
+      // Convert to user's timezone for grouping
+      const utcDate = new Date(set.date);
+      const dayKey = getDateKey(utcDate, timezone);
+      const existing = groups.get(dayKey) || [];
+      existing.push(set);
+      groups.set(dayKey, existing);
+    });
+
+    // Convert to array of DayGroup, sorted by date (newest first)
+    const dayGroups: DayGroup[] = Array.from(groups.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([dateKey, daySets]) => {
+        // Calculate pace for each set and sort by pace (ascending - best first)
+        const setsWithPace = daySets.map((set) => ({
+          set,
+          pace: (set.distance || 0) > 0 ? (set.duration || 0) / (set.distance || 1) : Infinity,
+        }));
+        setsWithPace.sort((a, b) => a.pace - b.pace);
+
+        const topSetData = setsWithPace[0];
+        const otherSetsData = setsWithPace.slice(1);
+
+        // Format display date from the first set
+        const displayDate = formatDateInTimezone(new Date(topSetData.set.date), timezone, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
+
+        return {
+          date: dateKey,
+          displayDate,
+          topSet: topSetData.set,
+          topPace: topSetData.pace,
+          otherSets: otherSetsData,
+        };
+      });
+
+    return dayGroups;
+  }, [sets, timezone]);
+
+  const toggleDay = (date: string) => {
+    setExpandedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(date)) {
+        next.delete(date);
+      } else {
+        next.add(date);
+      }
+      return next;
+    });
   };
 
-  const sortedSets = [...sets].sort((a, b) => {
-    let comparison = 0;
-
-    switch (sortField) {
-      case 'date':
-        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
-        break;
-      case 'distance':
-        comparison = (a.distance || 0) - (b.distance || 0);
-        break;
-      case 'duration':
-        comparison = (a.duration || 0) - (b.duration || 0);
-        break;
-      case 'pace':
-        const paceA = (a.distance || 0) > 0 ? (a.duration || 0) / (a.distance || 1) : 0;
-        const paceB = (b.distance || 0) > 0 ? (b.duration || 0) / (b.distance || 1) : 0;
-        comparison = paceA - paceB;
-        break;
-    }
-
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
+  // Helper to format time from a set in user's timezone
+  const formatTime = (set: WorkoutSet) => {
+    return formatDateInTimezone(new Date(set.date), timezone, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
   if (sets.length === 0) {
     return (
@@ -57,74 +118,124 @@ export default function CardioHistoryTable({ sets }: CardioHistoryTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-gray-200 dark:border-gray-700">
-            <th className="text-left py-3 px-2 sm:px-4">
-              <button
-                onClick={() => handleSort('date')}
-                className="flex items-center gap-1 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                Date
-                <ArrowUpDown className="w-3 h-3 sm:w-4 sm:h-4" />
-              </button>
-            </th>
-            <th className="text-left py-3 px-2 sm:px-4">
-              <button
-                onClick={() => handleSort('distance')}
-                className="flex items-center gap-1 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                Distance
-                <ArrowUpDown className="w-3 h-3 sm:w-4 sm:h-4" />
-              </button>
-            </th>
-            <th className="text-left py-3 px-2 sm:px-4">
-              <button
-                onClick={() => handleSort('duration')}
-                className="flex items-center gap-1 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                Time
-                <ArrowUpDown className="w-3 h-3 sm:w-4 sm:h-4" />
-              </button>
-            </th>
-            <th className="text-left py-3 px-2 sm:px-4">
-              <button
-                onClick={() => handleSort('pace')}
-                className="flex items-center gap-1 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                Pace
-                <ArrowUpDown className="w-3 h-3 sm:w-4 sm:h-4" />
-              </button>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedSets.map((set) => {
-            const pace = (set.distance || 0) > 0 ? ((set.duration || 0) / (set.distance || 1)).toFixed(2) : '-';
+    <div className="space-y-2">
+      {groupedByDay.map((dayGroup) => {
+        const isExpanded = expandedDays.has(dayGroup.date);
+        const hasMoreSets = dayGroup.otherSets.length > 0;
 
-            return (
-              <tr
-                key={set.id}
-                className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-              >
-                <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                  {format(new Date(set.date), 'MMM d, yyyy')}
-                </td>
-                <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                  {set.distance} mi
-                </td>
-                <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                  {set.duration} min
-                </td>
-                <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-green-600 dark:text-green-400">
-                  {pace !== '-' ? `${pace} min/mi` : '-'}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+        return (
+          <div
+            key={dayGroup.date}
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+          >
+            {/* Main row - always visible */}
+            <div
+              onClick={() => hasMoreSets && toggleDay(dayGroup.date)}
+              className={`flex items-center p-3 sm:p-4 ${
+                hasMoreSets ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800' : ''
+              } bg-white dark:bg-gray-800`}
+            >
+              {/* Left: Chevron + Date */}
+              <div className="flex items-center gap-3 sm:gap-4 w-32 sm:w-40 flex-shrink-0">
+                {hasMoreSets ? (
+                  <button className="text-gray-500 dark:text-gray-400 flex-shrink-0">
+                    {isExpanded ? (
+                      <ChevronDown className="w-5 h-5" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5" />
+                    )}
+                  </button>
+                ) : (
+                  <div className="w-5 flex-shrink-0" />
+                )}
+                <div>
+                  <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
+                    {dayGroup.displayDate}
+                  </div>
+                  {hasMoreSets && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {dayGroup.otherSets.length + 1} sessions
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Center: Notes */}
+              <div className="flex-1 min-w-0 px-2 sm:px-4">
+                {dayGroup.topSet.notes && (
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                    {dayGroup.topSet.notes}
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Distance/Duration + Pace */}
+              <div className="flex items-center gap-4 sm:gap-6 flex-shrink-0">
+                <div className="text-right">
+                  <div className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
+                    {dayGroup.topSet.distance} mi
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {dayGroup.topSet.duration} min
+                  </div>
+                </div>
+                <div className="text-right min-w-[70px]">
+                  <div className="text-sm sm:text-base font-bold text-green-600 dark:text-green-400">
+                    {dayGroup.topPace !== Infinity ? `${dayGroup.topPace.toFixed(2)}` : '-'}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">min/mi</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Expanded section - other sets from the same day */}
+            {isExpanded && dayGroup.otherSets.length > 0 && (
+              <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                {dayGroup.otherSets.map(({ set, pace }) => (
+                  <div
+                    key={set.id}
+                    className="flex items-center p-3 sm:p-4 pl-12 sm:pl-14 border-b border-gray-100 dark:border-gray-800 last:border-b-0"
+                  >
+                    {/* Left: Time */}
+                    <div className="w-20 sm:w-28 flex-shrink-0">
+                      <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        {formatTime(set)}
+                      </div>
+                    </div>
+
+                    {/* Center: Notes */}
+                    <div className="flex-1 min-w-0 px-2 sm:px-4">
+                      {set.notes && (
+                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                          {set.notes}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: Distance/Duration + Pace */}
+                    <div className="flex items-center gap-4 sm:gap-6 flex-shrink-0">
+                      <div className="text-right">
+                        <div className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300">
+                          {set.distance} mi
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {set.duration} min
+                        </div>
+                      </div>
+                      <div className="text-right min-w-[70px]">
+                        <div className="text-sm sm:text-base font-medium text-green-600 dark:text-green-400">
+                          {pace !== Infinity ? `${pace.toFixed(2)}` : '-'}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">min/mi</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
