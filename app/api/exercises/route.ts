@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     // Extract user exercises and filter by muscle group if needed
     let userExercises: Exercise[] = (userExerciseLinks || [])
-      .map((link) => link.exercises as Exercise | null)
+      .map((link) => link.exercises as unknown as Exercise | null)
       .filter((ex): ex is Exercise => ex !== null);
 
     if (muscleGroup && muscleGroup !== 'All') {
