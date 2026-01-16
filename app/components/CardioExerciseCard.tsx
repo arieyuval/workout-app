@@ -12,6 +12,7 @@ interface CardioExerciseCardProps {
   onSetLogged?: () => void;
 }
 
+
 // Get user's timezone or default to PST
 const getUserTimezone = () => {
   try {
@@ -109,7 +110,7 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, on
             <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
           </div>
 
-          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
+          <div className="text-xs sm:text-sm font-medium text-teal-600 dark:text-teal-400 mb-1">
             {exercise.muscle_group}
           </div>
         </div>

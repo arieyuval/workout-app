@@ -12,6 +12,20 @@ interface ExerciseCardProps {
   onSetLogged?: () => void;
 }
 
+// Text colors for each muscle group label (darker/gentler shades)
+const getMuscleGroupTextColor = (muscleGroup: string) => {
+  const colors: Record<string, string> = {
+    Chest: 'text-rose-700 dark:text-rose-300',
+    Back: 'text-blue-600 dark:text-blue-400',
+    Legs: 'text-green-700 dark:text-green-300',
+    Shoulders: 'text-amber-700 dark:text-amber-300',
+    Arms: 'text-purple-600 dark:text-purple-400',
+    Core: 'text-yellow-700 dark:text-yellow-300',
+    Cardio: 'text-teal-600 dark:text-teal-400',
+  };
+  return colors[muscleGroup] || 'text-gray-600 dark:text-gray-400';
+};
+
 // Get user's timezone or default to PST
 const getUserTimezone = () => {
   try {
@@ -87,19 +101,21 @@ export default function ExerciseCard({ exercise, lastSet, currentMax, onSetLogge
     }
   };
 
+  const muscleGroupColor = getMuscleGroupTextColor(exercise.muscle_group);
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* Header - Clickable to detail page */}
       <Link href={`/exercise/${exercise.id}`}>
         <div className="p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white pr-2">
+            <h3 className="text-base sm:text-lg font-bold pr-2 text-gray-900 dark:text-white">
               {exercise.name}
             </h3>
             <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
           </div>
 
-          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
+          <div className={`text-xs sm:text-sm font-medium mb-1 ${muscleGroupColor}`}>
             {exercise.muscle_group}
           </div>
         </div>
