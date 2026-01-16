@@ -37,7 +37,9 @@ export default function LoginPage() {
 
         if (error) throw error;
 
-        setMessage('Check your email for the confirmation link!');
+        // Sign up successful, redirect to home
+        router.push('/');
+        router.refresh();
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
