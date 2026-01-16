@@ -15,6 +15,7 @@ export interface Exercise {
 export interface WorkoutSet {
   id: string;
   exercise_id: string;
+  user_id?: string;
   exercise_name?: string;
   // Strength training fields
   weight?: number;

@@ -7,6 +7,7 @@ import MuscleTabs from './components/MuscleTabs';
 import ExerciseCard from './components/ExerciseCard';
 import CardioExerciseCard from './components/CardioExerciseCard';
 import AddExerciseModal from './components/AddExerciseModal';
+import UserMenu from './components/UserMenu';
 import type { Exercise, WorkoutSet, MuscleGroup } from '@/lib/types';
 
 export default function Home() {
@@ -174,6 +175,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
         {/* Header */}
         <header className="mb-6 sm:mb-8">
+          <div className="flex justify-end mb-2">
+            <UserMenu />
+          </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-900 dark:text-white mb-2">
             Workout Tracker
           </h1>

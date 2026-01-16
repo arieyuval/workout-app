@@ -19,16 +19,19 @@ function getStartOfTodayISO(timezone: string = DEFAULT_TIMEZONE): string {
 /**
  * Get the most recent set for an exercise
  * @param exerciseId - The ID of the exercise
+ * @param userId - The user's ID
  * @param excludeToday - Whether to exclude today's sets (default: false)
  */
 export async function getLastSet(
   exerciseId: string,
+  userId: string,
   excludeToday: boolean = false
 ): Promise<WorkoutSet | null> {
   let query = supabase
     .from('sets')
     .select('*')
     .eq('exercise_id', exerciseId)
+    .eq('user_id', userId)
     .order('date', { ascending: false })
     .limit(1);
 
@@ -50,16 +53,19 @@ export async function getLastSet(
 /**
  * Get the maximum weight for a given rep count (or more reps)
  * @param exerciseId - The ID of the exercise
+ * @param userId - The user's ID
  * @param reps - The minimum number of reps
  */
 export async function getMaxForReps(
   exerciseId: string,
+  userId: string,
   reps: number
 ): Promise<number | null> {
   const { data, error } = await supabase
     .from('sets')
     .select('weight, reps')
     .eq('exercise_id', exerciseId)
+    .eq('user_id', userId)
     .gte('reps', reps)
     .order('weight', { ascending: false })
     .limit(1);
@@ -75,9 +81,11 @@ export async function getMaxForReps(
 /**
  * Get personal records for common rep ranges
  * @param exerciseId - The ID of the exercise
+ * @param userId - The user's ID
  */
 export async function getPersonalRecords(
-  exerciseId: string
+  exerciseId: string,
+  userId: string
 ): Promise<PersonalRecord[]> {
   const repRanges = [1, 3, 5, 8, 10];
   const records: PersonalRecord[] = [];
@@ -87,6 +95,7 @@ export async function getPersonalRecords(
       .from('sets')
       .select('weight, reps, date')
       .eq('exercise_id', exerciseId)
+      .eq('user_id', userId)
       .gte('reps', reps)
       .order('weight', { ascending: false })
       .limit(1);
@@ -106,12 +115,14 @@ export async function getPersonalRecords(
 /**
  * Get the full set history for an exercise
  * @param exerciseId - The ID of the exercise
+ * @param userId - The user's ID
  */
-export async function getSetHistory(exerciseId: string): Promise<WorkoutSet[]> {
+export async function getSetHistory(exerciseId: string, userId: string): Promise<WorkoutSet[]> {
   const { data, error } = await supabase
     .from('sets')
     .select('*')
     .eq('exercise_id', exerciseId)
+    .eq('user_id', userId)
     .order('date', { ascending: false });
 
   if (error) {

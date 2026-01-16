@@ -25,14 +25,14 @@ export default function ProgressChart({ sets }: ProgressChartProps) {
     availableReps.length > 0 ? availableReps[0] : null
   );
 
-  // Filter sets by selected rep count (sets with reps >= selected)
+  // Filter sets by exact rep count
   // Then group by day and pick the best weight for each day
   const chartData = useMemo(() => {
     if (selectedReps === null) return [];
 
-    // Filter sets with reps >= selectedReps
+    // Filter sets with exactly selectedReps
     const filteredSets = sets.filter(
-      (set) => set.reps !== undefined && set.reps >= selectedReps && set.weight !== undefined
+      (set) => set.reps !== undefined && set.reps === selectedReps && set.weight !== undefined
     );
 
     // Group by day (using date string without time)
@@ -69,7 +69,7 @@ export default function ProgressChart({ sets }: ProgressChartProps) {
       {/* Rep selector */}
       <div className="flex items-center gap-3 mb-4">
         <label className="text-sm text-gray-600 dark:text-gray-400">
-          Show sets with at least
+          Show sets with exactly
         </label>
         <select
           value={selectedReps ?? ''}
@@ -86,7 +86,7 @@ export default function ProgressChart({ sets }: ProgressChartProps) {
 
       {chartData.length === 0 ? (
         <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-          No sets found with {selectedReps}+ reps.
+          No sets found with exactly {selectedReps} {selectedReps === 1 ? 'rep' : 'reps'}.
         </div>
       ) : (
         <div className="w-full h-72">

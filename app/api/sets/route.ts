@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logSet, getSetHistory } from '@/lib/data-utils';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import type { WorkoutSetInsert } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const exerciseId = searchParams.get('exercise_id');
 
@@ -14,7 +25,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const sets = await getSetHistory(exerciseId);
+    const sets = await getSetHistory(exerciseId, user.id);
 
     return NextResponse.json(sets);
   } catch (error) {
@@ -28,6 +39,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body: WorkoutSetInsert = await request.json();
     console.log('Logging set with data:', body);
 
@@ -49,9 +70,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Set date to now if not provided
+    // Set date to now if not provided, and add user_id
     const setData: WorkoutSetInsert = {
       ...body,
+      user_id: user.id,
       date: body.date || new Date().toISOString(),
     };
 
