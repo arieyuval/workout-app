@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Plus } from 'lucide-react';
-import type { MuscleGroup, ExerciseType } from '@/lib/types';
+import type { MuscleGroup, ExerciseType, Exercise } from '@/lib/types';
 
 interface AddExerciseModalProps {
   isOpen: boolean;
@@ -11,6 +11,20 @@ interface AddExerciseModalProps {
 }
 
 const strengthMuscleGroups: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
+
+// Get text color for muscle group in suggestions
+const getMuscleGroupColor = (muscleGroup: string): string => {
+  const colors: Record<string, string> = {
+    Chest: 'text-rose-600 dark:text-rose-400',
+    Back: 'text-blue-600 dark:text-blue-400',
+    Legs: 'text-green-600 dark:text-green-400',
+    Shoulders: 'text-amber-600 dark:text-amber-400',
+    Arms: 'text-purple-600 dark:text-purple-400',
+    Core: 'text-yellow-600 dark:text-yellow-400',
+    Cardio: 'text-teal-600 dark:text-teal-400',
+  };
+  return colors[muscleGroup] || 'text-gray-500';
+};
 
 export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: AddExerciseModalProps) {
   const [exerciseName, setExerciseName] = useState('');
@@ -25,6 +39,98 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
   const [prDuration, setPrDuration] = useState<number | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Autocomplete state
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
+  const [suggestions, setSuggestions] = useState<Exercise[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch all exercises for autocomplete when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchAllExercises();
+    }
+  }, [isOpen]);
+
+  const fetchAllExercises = async () => {
+    try {
+      const response = await fetch('/api/exercises/all');
+      if (response.ok) {
+        const data = await response.json();
+        setAllExercises(data);
+      }
+    } catch (error) {
+      console.error('Error fetching exercises for autocomplete:', error);
+    }
+  };
+
+  // Filter suggestions based on input
+  useEffect(() => {
+    if (exerciseName.trim().length >= 1) {
+      const filtered = allExercises
+        .filter((ex) =>
+          ex.name.toLowerCase().includes(exerciseName.toLowerCase().trim())
+        )
+        .slice(0, 6); // Limit to 6 suggestions
+      setSuggestions(filtered);
+      setShowSuggestions(filtered.length > 0);
+      setSelectedSuggestionIndex(-1);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [exerciseName, allExercises]);
+
+  // Handle clicking outside suggestions to close them
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle selecting a suggestion
+  const handleSelectSuggestion = (exercise: Exercise) => {
+    setExerciseName(exercise.name);
+    setExerciseType(exercise.exercise_type);
+    if (exercise.exercise_type === 'strength') {
+      setMuscleGroup(exercise.muscle_group as MuscleGroup);
+      setDefaultPrReps(exercise.default_pr_reps);
+    }
+    setShowSuggestions(false);
+  };
+
+  // Handle keyboard navigation in suggestions
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedSuggestionIndex((prev) =>
+        prev < suggestions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+      e.preventDefault();
+      handleSelectSuggestion(suggestions[selectedSuggestionIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -126,6 +232,10 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
       // Notify parent and close
       onExerciseAdded();
       onClose();
+
+      // Note: The API handles checking for existing exercises automatically.
+      // If an exercise with the same name and muscle group exists, it will
+      // be added to the user's feed instead of creating a duplicate.
     } catch (err) {
       console.error('Error creating exercise:', err);
       setError('Failed to create exercise. Please try again.');
@@ -168,21 +278,53 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
-          {/* Exercise Name */}
-          <div>
+          {/* Exercise Name with Autocomplete */}
+          <div className="relative">
             <label htmlFor="exercise-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Exercise Name *
             </label>
             <input
+              ref={inputRef}
               id="exercise-name"
               type="text"
               value={exerciseName}
               onChange={(e) => setExerciseName(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                if (suggestions.length > 0) setShowSuggestions(true);
+              }}
               placeholder="e.g., Bench Press"
               disabled={isSubmitting}
+              autoComplete="off"
               className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
               required
             />
+
+            {/* Autocomplete Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div
+                ref={suggestionsRef}
+                className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto"
+              >
+                {suggestions.map((exercise, index) => (
+                  <button
+                    key={exercise.id}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(exercise)}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                      index === selectedSuggestionIndex ? 'bg-gray-100 dark:bg-gray-700' : ''
+                    }`}
+                  >
+                    <span className="text-sm text-gray-900 dark:text-white font-medium">
+                      {exercise.name}
+                    </span>
+                    <span className={`text-xs ${getMuscleGroupColor(exercise.muscle_group)}`}>
+                      {exercise.muscle_group}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Exercise Type */}

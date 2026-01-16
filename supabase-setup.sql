@@ -9,8 +9,19 @@ CREATE TABLE IF NOT EXISTS exercises (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
   muscle_group TEXT NOT NULL,
+  exercise_type TEXT DEFAULT 'strength',
   default_pr_reps INTEGER DEFAULT 1,
+  is_base BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create user_exercises junction table (tracks which exercises each user has added)
+CREATE TABLE IF NOT EXISTS user_exercises (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  exercise_id UUID NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, exercise_id)
 );
 
 -- Create sets table
@@ -28,38 +39,46 @@ CREATE TABLE IF NOT EXISTS sets (
 CREATE INDEX IF NOT EXISTS idx_sets_exercise_id ON sets(exercise_id);
 CREATE INDEX IF NOT EXISTS idx_sets_date ON sets(date DESC);
 CREATE INDEX IF NOT EXISTS idx_exercises_muscle_group ON exercises(muscle_group);
+CREATE INDEX IF NOT EXISTS idx_exercises_is_base ON exercises(is_base);
+CREATE INDEX IF NOT EXISTS idx_user_exercises_user_id ON user_exercises(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_exercises_exercise_id ON user_exercises(exercise_id);
 
--- Insert placeholder exercises
-INSERT INTO exercises (name, muscle_group, default_pr_reps) VALUES
+-- Insert base exercises (shown to all users)
+INSERT INTO exercises (name, muscle_group, exercise_type, default_pr_reps, is_base) VALUES
   -- Chest exercises
-  ('Chest Exercise 1', 'Chest', 1),
-  ('Chest Exercise 2', 'Chest', 1),
-  ('Chest Exercise 3', 'Chest', 1),
+  ('Bench Press', 'Chest', 'strength', 1, TRUE),
+  ('Incline Dumbbell Press', 'Chest', 'strength', 1, TRUE),
+  ('Cable Flyes', 'Chest', 'strength', 10, TRUE),
 
   -- Back exercises
-  ('Back Exercise 1', 'Back', 1),
-  ('Back Exercise 2', 'Back', 1),
-  ('Back Exercise 3', 'Back', 1),
+  ('Deadlift', 'Back', 'strength', 1, TRUE),
+  ('Barbell Row', 'Back', 'strength', 5, TRUE),
+  ('Pull-ups', 'Back', 'strength', 8, TRUE),
 
   -- Legs exercises
-  ('Legs Exercise 1', 'Legs', 1),
-  ('Legs Exercise 2', 'Legs', 1),
-  ('Legs Exercise 3', 'Legs', 1),
+  ('Squat', 'Legs', 'strength', 1, TRUE),
+  ('Romanian Deadlift', 'Legs', 'strength', 8, TRUE),
+  ('Leg Press', 'Legs', 'strength', 10, TRUE),
 
   -- Shoulders exercises
-  ('Shoulders Exercise 1', 'Shoulders', 1),
-  ('Shoulders Exercise 2', 'Shoulders', 1),
-  ('Shoulders Exercise 3', 'Shoulders', 1),
+  ('Overhead Press', 'Shoulders', 'strength', 1, TRUE),
+  ('Lateral Raises', 'Shoulders', 'strength', 12, TRUE),
+  ('Face Pulls', 'Shoulders', 'strength', 15, TRUE),
 
   -- Arms exercises
-  ('Arms Exercise 1', 'Arms', 1),
-  ('Arms Exercise 2', 'Arms', 1),
-  ('Arms Exercise 3', 'Arms', 1),
+  ('Barbell Curl', 'Arms', 'strength', 8, TRUE),
+  ('Tricep Pushdown', 'Arms', 'strength', 10, TRUE),
+  ('Hammer Curls', 'Arms', 'strength', 10, TRUE),
 
   -- Core exercises
-  ('Core Exercise 1', 'Core', 5),
-  ('Core Exercise 2', 'Core', 5),
-  ('Core Exercise 3', 'Core', 5);
+  ('Plank', 'Core', 'strength', 1, TRUE),
+  ('Cable Crunches', 'Core', 'strength', 15, TRUE),
+  ('Hanging Leg Raises', 'Core', 'strength', 10, TRUE),
+
+  -- Cardio exercises
+  ('Running', 'Cardio', 'cardio', 1, TRUE),
+  ('Cycling', 'Cardio', 'cardio', 1, TRUE),
+  ('Rowing', 'Cardio', 'cardio', 1, TRUE);
 
 -- Optional: Add some sample sets for testing (uncomment to use)
 -- You can remove this section after testing

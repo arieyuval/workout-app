@@ -9,6 +9,14 @@ export interface Exercise {
   muscle_group: MuscleGroup;
   exercise_type: ExerciseType;
   default_pr_reps: number; // default rep count for PR display (only for strength exercises)
+  is_base: boolean; // true for base exercises shown to all users, false for user-created
+  created_at?: string;
+}
+
+export interface UserExercise {
+  id: string;
+  user_id: string;
+  exercise_id: string;
   created_at?: string;
 }
 
