@@ -1,9 +1,10 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import ExerciseDetail from '@/app/components/ExerciseDetail';
 import CardioExerciseDetail from '@/app/components/CardioExerciseDetail';
 import { getExercise, getSetHistory, getPersonalRecords, getLastSet } from '@/lib/data-utils';
+import { getUser } from '@/lib/supabase-server';
 
 export default async function ExercisePage({
   params,
@@ -12,6 +13,12 @@ export default async function ExercisePage({
 }) {
   const { id } = await params;
 
+  // Get authenticated user
+  const user = await getUser();
+  if (!user) {
+    redirect('/login');
+  }
+
   // Fetch exercise data
   const exercise = await getExercise(id);
 
@@ -19,10 +26,10 @@ export default async function ExercisePage({
     notFound();
   }
 
-  // Fetch sets and PRs
-  const sets = await getSetHistory(id);
-  const prs = await getPersonalRecords(id);
-  const lastSet = await getLastSet(id, true); // Exclude today
+  // Fetch sets and PRs for this user
+  const sets = await getSetHistory(id, user.id);
+  const prs = await getPersonalRecords(id, user.id);
+  const lastSet = await getLastSet(id, user.id, true); // Exclude today
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

@@ -1,3 +1,4 @@
+import { createServerSupabaseClient } from './supabase-server';
 import { supabase } from './supabase';
 import type { WorkoutSet, PersonalRecord, WorkoutSetInsert } from './types';
 
@@ -27,7 +28,8 @@ export async function getLastSet(
   userId: string,
   excludeToday: boolean = false
 ): Promise<WorkoutSet | null> {
-  let query = supabase
+  const supabaseServer = await createServerSupabaseClient();
+  let query = supabaseServer
     .from('sets')
     .select('*')
     .eq('exercise_id', exerciseId)
@@ -61,7 +63,8 @@ export async function getMaxForReps(
   userId: string,
   reps: number
 ): Promise<number | null> {
-  const { data, error } = await supabase
+  const supabaseServer = await createServerSupabaseClient();
+  const { data, error } = await supabaseServer
     .from('sets')
     .select('weight, reps')
     .eq('exercise_id', exerciseId)
@@ -87,11 +90,12 @@ export async function getPersonalRecords(
   exerciseId: string,
   userId: string
 ): Promise<PersonalRecord[]> {
+  const supabaseServer = await createServerSupabaseClient();
   const repRanges = [1, 3, 5, 8, 10];
   const records: PersonalRecord[] = [];
 
   for (const reps of repRanges) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseServer
       .from('sets')
       .select('weight, reps, date')
       .eq('exercise_id', exerciseId)
@@ -118,7 +122,8 @@ export async function getPersonalRecords(
  * @param userId - The user's ID
  */
 export async function getSetHistory(exerciseId: string, userId: string): Promise<WorkoutSet[]> {
-  const { data, error } = await supabase
+  const supabaseServer = await createServerSupabaseClient();
+  const { data, error } = await supabaseServer
     .from('sets')
     .select('*')
     .eq('exercise_id', exerciseId)
@@ -140,7 +145,8 @@ export async function getSetHistory(exerciseId: string, userId: string): Promise
 export async function logSet(setData: WorkoutSetInsert): Promise<WorkoutSet | null> {
   console.log('logSet called with data:', setData);
 
-  const { data, error } = await supabase
+  const supabaseServer = await createServerSupabaseClient();
+  const { data, error } = await supabaseServer
     .from('sets')
     .insert(setData)
     .select()
