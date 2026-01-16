@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, getUser } from '@/lib/supabase-server';
-import type { ExerciseInsert } from '@/lib/types';
+import type { Exercise, ExerciseInsert } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,16 +51,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Extract user exercises and filter by muscle group if needed
-    let userExercises = userExerciseLinks
-      ?.map((link) => link.exercises)
-      .filter((ex): ex is NonNullable<typeof ex> => ex !== null) || [];
+    let userExercises: Exercise[] = (userExerciseLinks || [])
+      .map((link) => link.exercises as Exercise | null)
+      .filter((ex): ex is Exercise => ex !== null);
 
     if (muscleGroup && muscleGroup !== 'All') {
       userExercises = userExercises.filter((ex) => ex.muscle_group === muscleGroup);
     }
 
     // Combine base and user exercises, removing duplicates (user exercises override base)
-    const baseIds = new Set(baseExercises?.map((ex) => ex.id) || []);
+    const baseIds = new Set((baseExercises || []).map((ex) => ex.id));
     const uniqueUserExercises = userExercises.filter((ex) => !baseIds.has(ex.id));
 
     const allExercises = [...(baseExercises || []), ...uniqueUserExercises]
