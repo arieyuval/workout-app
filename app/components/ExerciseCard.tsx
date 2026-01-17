@@ -26,6 +26,20 @@ const getMuscleGroupTextColor = (muscleGroup: string) => {
   return colors[muscleGroup] || 'text-gray-600 dark:text-gray-400';
 };
 
+// Background and text colors for PR box matching muscle group
+const getMuscleGroupPRColors = (muscleGroup: string) => {
+  const colors: Record<string, { bg: string; text: string }> = {
+    Chest: { bg: 'bg-rose-50 dark:bg-rose-900/20', text: 'text-rose-700 dark:text-rose-300' },
+    Back: { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-600 dark:text-blue-400' },
+    Legs: { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-300' },
+    Shoulders: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-300' },
+    Arms: { bg: 'bg-purple-50 dark:bg-purple-900/20', text: 'text-purple-600 dark:text-purple-400' },
+    Core: { bg: 'bg-yellow-50 dark:bg-yellow-900/20', text: 'text-yellow-700 dark:text-yellow-300' },
+    Cardio: { bg: 'bg-teal-50 dark:bg-teal-900/20', text: 'text-teal-600 dark:text-teal-400' },
+  };
+  return colors[muscleGroup] || { bg: 'bg-gray-50 dark:bg-gray-900/20', text: 'text-gray-600 dark:text-gray-400' };
+};
+
 // Get user's timezone or default to PST
 const getUserTimezone = () => {
   try {
@@ -102,6 +116,7 @@ export default function ExerciseCard({ exercise, lastSet, currentMax, onSetLogge
   };
 
   const muscleGroupColor = getMuscleGroupTextColor(exercise.muscle_group);
+  const prColors = getMuscleGroupPRColors(exercise.muscle_group);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -139,12 +154,12 @@ export default function ExerciseCard({ exercise, lastSet, currentMax, onSetLogge
           </div>
 
           {/* PR */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
-            <div className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 mb-1 font-medium">
+          <div className={`${prColors.bg} p-3 rounded-md`}>
+            <div className={`text-[10px] sm:text-xs ${prColors.text} mb-1 font-medium`}>
               {exercise.default_pr_reps}RM PR
             </div>
             {currentMax ? (
-              <div className="text-sm sm:text-base font-bold text-blue-600 dark:text-blue-400">
+              <div className={`text-sm sm:text-base font-bold ${prColors.text}`}>
                 {currentMax} lbs
               </div>
             ) : (

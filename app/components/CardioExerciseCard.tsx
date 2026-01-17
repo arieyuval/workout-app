@@ -134,12 +134,12 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, on
           </div>
 
           {/* Best Distance */}
-          <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-md">
-            <div className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 mb-1 font-medium">
+          <div className="bg-teal-50 dark:bg-teal-900/20 p-3 rounded-md">
+            <div className="text-[10px] sm:text-xs text-teal-600 dark:text-teal-400 mb-1 font-medium">
               Best Distance
             </div>
             {bestDistance ? (
-              <div className="text-sm sm:text-base font-bold text-green-600 dark:text-green-400">
+              <div className="text-sm sm:text-base font-bold text-teal-600 dark:text-teal-400">
                 {bestDistance} mi
               </div>
             ) : (
