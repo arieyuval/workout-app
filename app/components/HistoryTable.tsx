@@ -2,11 +2,22 @@
 
 import { useState, useMemo } from 'react';
 import type { WorkoutSet } from '@/lib/types';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Pencil, Check, X, Trash2 } from 'lucide-react';
 
 interface HistoryTableProps {
   sets: WorkoutSet[];
+  usesBodyWeight?: boolean;
+  onSetUpdated?: () => void;
+  onSetDeleted?: () => void;
 }
+
+// Format weight display for body weight vs regular exercises
+const formatWeight = (weight: number, usesBodyWeight: boolean): string => {
+  if (!usesBodyWeight) {
+    return `${weight} lbs`;
+  }
+  return weight > 0 ? `BW + ${weight} lbs` : 'BW';
+};
 
 interface DayGroup {
   date: string;
@@ -37,8 +48,12 @@ const getDateKey = (date: Date, timezone: string) => {
   return `${year}-${month}-${day}`;
 };
 
-export default function HistoryTable({ sets }: HistoryTableProps) {
+export default function HistoryTable({ sets, usesBodyWeight = false, onSetUpdated, onSetDeleted }: HistoryTableProps) {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+  const [editingSetId, setEditingSetId] = useState<string | null>(null);
+  const [editWeight, setEditWeight] = useState<number>(0);
+  const [editReps, setEditReps] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const timezone = getUserTimezone();
 
   // Group sets by day and find the top set (heaviest) for each day
@@ -102,6 +117,129 @@ export default function HistoryTable({ sets }: HistoryTableProps) {
     });
   };
 
+  const startEditing = (set: WorkoutSet, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingSetId(set.id);
+    setEditWeight(set.weight ?? 0);
+    setEditReps(set.reps ?? 0);
+  };
+
+  const cancelEditing = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingSetId(null);
+  };
+
+  const saveEdit = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!editingSetId) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/sets/${editingSetId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weight: editWeight,
+          reps: editReps,
+        }),
+      });
+
+      if (response.ok) {
+        onSetUpdated?.();
+      }
+    } catch (error) {
+      console.error('Error updating set:', error);
+    } finally {
+      setEditingSetId(null);
+      setIsSubmitting(false);
+    }
+  };
+
+  const deleteSet = async (setId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this set?')) return;
+
+    try {
+      const response = await fetch(`/api/sets/${setId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        onSetDeleted?.();
+      }
+    } catch (error) {
+      console.error('Error deleting set:', error);
+    }
+  };
+
+  const renderSetRow = (set: WorkoutSet, isTopSet: boolean = false) => {
+    const isEditing = editingSetId === set.id;
+
+    if (isEditing) {
+      return (
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="number"
+            step="0.01"
+            value={editWeight}
+            onChange={(e) => setEditWeight(parseFloat(e.target.value) || 0)}
+            className="w-16 sm:w-20 px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+            placeholder="Weight"
+            autoFocus
+          />
+          <span className="text-gray-400">×</span>
+          <input
+            type="number"
+            value={editReps}
+            onChange={(e) => setEditReps(parseInt(e.target.value) || 0)}
+            className="w-12 sm:w-16 px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+            placeholder="Reps"
+          />
+          <button
+            onClick={saveEdit}
+            disabled={isSubmitting}
+            className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
+          >
+            <Check className="w-4 h-4" />
+          </button>
+          <button
+            onClick={cancelEditing}
+            className="p-1 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        <div className="text-right">
+          <div className={`text-sm sm:text-base ${isTopSet ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
+            {formatWeight(set.weight ?? 0, usesBodyWeight)}
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            {set.reps} reps
+          </div>
+        </div>
+        <button
+          onClick={(e) => startEditing(set, e)}
+          className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+          title="Edit set"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={(e) => deleteSet(set.id, e)}
+          className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+          title="Delete set"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  };
+
   if (sets.length === 0) {
     return (
       <div className="text-center text-gray-500 dark:text-gray-400 py-8">
@@ -162,14 +300,9 @@ export default function HistoryTable({ sets }: HistoryTableProps) {
                 )}
               </div>
 
-              {/* Right: Weight/Reps */}
-              <div className="flex-shrink-0 text-right">
-                <div className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
-                  {dayGroup.topSet.weight} lbs
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {dayGroup.topSet.reps} reps
-                </div>
+              {/* Right: Weight/Reps with Edit */}
+              <div className="flex-shrink-0">
+                {renderSetRow(dayGroup.topSet, true)}
               </div>
             </div>
 
@@ -197,14 +330,9 @@ export default function HistoryTable({ sets }: HistoryTableProps) {
                       )}
                     </div>
 
-                    {/* Right: Weight/Reps */}
-                    <div className="flex-shrink-0 text-right">
-                      <div className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300">
-                        {set.weight} lbs
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {set.reps} reps
-                      </div>
+                    {/* Right: Weight/Reps with Edit */}
+                    <div className="flex-shrink-0">
+                      {renderSetRow(set, false)}
                     </div>
                   </div>
                 ))}

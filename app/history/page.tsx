@@ -2,14 +2,23 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronRight, Pencil, Check, X, Trash2 } from 'lucide-react';
 import type { WorkoutSet } from '@/lib/types';
 
 interface SetWithExercise extends WorkoutSet {
   exercise_name?: string;
   muscle_group?: string;
   exercise_type?: string;
+  uses_body_weight?: boolean;
 }
+
+// Format weight display for body weight vs regular exercises
+const formatWeight = (weight: number, usesBodyWeight: boolean): string => {
+  if (!usesBodyWeight) {
+    return `${weight} lbs`;
+  }
+  return weight > 0 ? `BW + ${weight} lbs` : 'BW';
+};
 
 interface ExerciseGroup {
   exerciseId: string;
@@ -67,6 +76,12 @@ export default function HistoryPage() {
   const [sets, setSets] = useState<SetWithExercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
+  const [editingSetId, setEditingSetId] = useState<string | null>(null);
+  const [editWeight, setEditWeight] = useState<number>(0);
+  const [editReps, setEditReps] = useState<number>(0);
+  const [editDistance, setEditDistance] = useState<number>(0);
+  const [editDuration, setEditDuration] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const timezone = getUserTimezone();
 
   useEffect(() => {
@@ -174,6 +189,182 @@ export default function HistoryPage() {
     return expandedExercises.has(`${dateKey}-${exerciseId}`);
   };
 
+  const fetchSets = async () => {
+    try {
+      const response = await fetch('/api/sets/all');
+      if (response.ok) {
+        const data = await response.json();
+        setSets(data);
+      }
+    } catch (error) {
+      console.error('Error fetching sets:', error);
+    }
+  };
+
+  const startEditing = (set: SetWithExercise, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingSetId(set.id);
+    if (set.exercise_type === 'cardio') {
+      setEditDistance(set.distance ?? 0);
+      setEditDuration(set.duration ?? 0);
+    } else {
+      setEditWeight(set.weight ?? 0);
+      setEditReps(set.reps ?? 0);
+    }
+  };
+
+  const cancelEditing = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingSetId(null);
+  };
+
+  const saveEdit = async (set: SetWithExercise, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!editingSetId) return;
+
+    setIsSubmitting(true);
+    try {
+      const body = set.exercise_type === 'cardio'
+        ? { distance: editDistance, duration: editDuration }
+        : { weight: editWeight, reps: editReps };
+
+      const response = await fetch(`/api/sets/${editingSetId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        fetchSets();
+      }
+    } catch (error) {
+      console.error('Error updating set:', error);
+    } finally {
+      setEditingSetId(null);
+      setIsSubmitting(false);
+    }
+  };
+
+  const deleteSet = async (setId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this set?')) return;
+
+    try {
+      const response = await fetch(`/api/sets/${setId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchSets();
+      }
+    } catch (error) {
+      console.error('Error deleting set:', error);
+    }
+  };
+
+  // Render set row with edit/delete buttons
+  const renderSetActions = (set: SetWithExercise) => {
+    const isEditing = editingSetId === set.id;
+
+    if (isEditing) {
+      if (set.exercise_type === 'cardio') {
+        return (
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="number"
+              step="0.01"
+              value={editDistance}
+              onChange={(e) => setEditDistance(parseFloat(e.target.value) || 0)}
+              className="w-16 px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+              placeholder="mi"
+              autoFocus
+            />
+            <span className="text-gray-400 text-xs">mi</span>
+            <input
+              type="number"
+              value={editDuration}
+              onChange={(e) => setEditDuration(parseInt(e.target.value) || 0)}
+              className="w-14 px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+              placeholder="min"
+            />
+            <span className="text-gray-400 text-xs">min</span>
+            <button
+              onClick={(e) => saveEdit(set, e)}
+              disabled={isSubmitting}
+              className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
+            >
+              <Check className="w-4 h-4" />
+            </button>
+            <button
+              onClick={cancelEditing}
+              className="p-1 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        );
+      }
+
+      return (
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="number"
+            step="0.01"
+            value={editWeight}
+            onChange={(e) => setEditWeight(parseFloat(e.target.value) || 0)}
+            className="w-16 px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+            placeholder="lbs"
+            autoFocus
+          />
+          <span className="text-gray-400">×</span>
+          <input
+            type="number"
+            value={editReps}
+            onChange={(e) => setEditReps(parseInt(e.target.value) || 0)}
+            className="w-12 px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+            placeholder="reps"
+          />
+          <button
+            onClick={(e) => saveEdit(set, e)}
+            disabled={isSubmitting}
+            className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
+          >
+            <Check className="w-4 h-4" />
+          </button>
+          <button
+            onClick={cancelEditing}
+            className="p-1 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      );
+    }
+
+    const display = formatSetDisplay(set, true);
+    return (
+      <div className="flex items-center gap-2">
+        <span className="font-medium text-gray-900 dark:text-white">
+          {display.inline}
+        </span>
+        <button
+          onClick={(e) => startEditing(set, e)}
+          className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+          title="Edit set"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={(e) => deleteSet(set.id, e)}
+          className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+          title="Delete set"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  };
+
   // Format set display based on exercise type
   const formatSetDisplay = (set: SetWithExercise, inline: boolean = false) => {
     if (set.exercise_type === 'cardio') {
@@ -187,10 +378,11 @@ export default function HistoryPage() {
       }
       return { primary: `${distance} mi`, secondary: timeStr };
     }
+    const weightStr = formatWeight(set.weight ?? 0, set.uses_body_weight ?? false);
     if (inline) {
-      return { inline: `${set.weight} lbs × ${set.reps} reps` };
+      return { inline: `${weightStr} × ${set.reps} reps` };
     }
-    return { primary: `${set.weight} lbs`, secondary: `${set.reps} reps` };
+    return { primary: weightStr, secondary: `${set.reps} reps` };
   };
 
   if (loading) {
@@ -252,7 +444,6 @@ export default function HistoryPage() {
                   {dayGroup.exercises.map((exercise) => {
                     const expanded = isExpanded(dayGroup.dateKey, exercise.exerciseId);
                     const hasMoreSets = exercise.otherSets.length > 0;
-                    const topSetDisplay = formatSetDisplay(exercise.topSet, true);
 
                     return (
                       <div key={exercise.exerciseId}>
@@ -288,38 +479,28 @@ export default function HistoryPage() {
                             )}
                           </div>
 
-                          {/* Top Set Display - Inline format */}
-                          <div className="text-right flex-shrink-0">
-                            <div className="font-medium text-gray-900 dark:text-white">
-                              {topSetDisplay.inline}
-                            </div>
+                          {/* Top Set Display with Edit/Delete */}
+                          <div className="flex-shrink-0">
+                            {renderSetActions(exercise.topSet)}
                           </div>
                         </div>
 
                         {/* Expanded Sets */}
                         {expanded && exercise.otherSets.length > 0 && (
                           <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
-                            {exercise.otherSets.map((set) => {
-                              const setDisplay = formatSetDisplay(set);
-                              return (
-                                <div
-                                  key={set.id}
-                                  className="flex items-center px-4 py-2 pl-10 border-b border-gray-100 dark:border-gray-800 last:border-b-0"
-                                >
-                                  <div className="flex-1 text-sm text-gray-600 dark:text-gray-400">
-                                    {formatTime(new Date(set.date), timezone)}
-                                  </div>
-                                  <div className="text-right">
-                                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                                      {setDisplay.primary}
-                                    </span>
-                                    <span className="text-gray-500 dark:text-gray-400 ml-2 text-sm">
-                                      {setDisplay.secondary}
-                                    </span>
-                                  </div>
+                            {exercise.otherSets.map((set) => (
+                              <div
+                                key={set.id}
+                                className="flex items-center px-4 py-2 pl-10 border-b border-gray-100 dark:border-gray-800 last:border-b-0"
+                              >
+                                <div className="flex-1 text-sm text-gray-600 dark:text-gray-400">
+                                  {formatTime(new Date(set.date), timezone)}
                                 </div>
-                              );
-                            })}
+                                <div className="flex-shrink-0">
+                                  {renderSetActions(set)}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>

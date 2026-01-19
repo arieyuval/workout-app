@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { X, Plus, Trash2, Scale, Target } from 'lucide-react';
+import { X, Plus, Trash2, Scale, Target, Pencil } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { format } from 'date-fns';
 import type { BodyWeightLog, UserProfile } from '@/lib/types';
@@ -222,28 +222,47 @@ export default function BodyWeightModal({ isOpen, onClose }: BodyWeightModalProp
                       Goal
                     </div>
                     {isEditingGoal ? (
-                      <div className="flex items-center gap-1 mt-1">
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={goalWeight}
-                          onChange={(e) => setGoalWeight(e.target.value)}
-                          className="w-16 px-1 py-0.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
-                          placeholder="lbs"
-                        />
-                        <button
-                          onClick={handleUpdateGoal}
-                          className="text-xs text-blue-600 hover:text-blue-700"
-                        >
-                          Save
-                        </button>
+                      <div className="flex flex-col gap-1 mt-1">
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={goalWeight}
+                            onChange={(e) => setGoalWeight(e.target.value)}
+                            className="w-20 px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+                            placeholder="lbs"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleUpdateGoal}
+                            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsEditingGoal(false);
+                              setGoalWeight(profile?.goal_weight?.toString() || '');
+                            }}
+                            className="text-xs text-gray-500 hover:text-gray-700"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div
                         onClick={() => setIsEditingGoal(true)}
-                        className="text-lg font-bold text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+                        className="flex items-center gap-1 cursor-pointer group"
+                        title="Click to edit"
                       >
-                        {profile?.goal_weight ? `${profile.goal_weight} lbs` : 'Set goal'}
+                        <span className="text-lg font-bold text-blue-600 dark:text-blue-400 group-hover:underline">
+                          {profile?.goal_weight ? `${profile.goal_weight} lbs` : 'Set goal'}
+                        </span>
+                        <Pencil className="w-3 h-3 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                       </div>
                     )}
                   </div>

@@ -8,6 +8,14 @@ import HistoryTable from './HistoryTable';
 import PRList from './PRList';
 import ProgressChart from './ProgressChart';
 
+// Format weight display for body weight vs regular exercises
+const formatWeight = (weight: number, usesBodyWeight: boolean): string => {
+  if (!usesBodyWeight) {
+    return `${weight} lbs`;
+  }
+  return weight > 0 ? `BW + ${weight} lbs` : 'BW';
+};
+
 interface ExerciseDetailProps {
   exercise: Exercise;
   initialSets: WorkoutSet[];
@@ -165,7 +173,7 @@ export default function ExerciseDetail({
           {lastSet ? (
             <div>
               <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {lastSet.weight} lbs × {lastSet.reps}
+                {formatWeight(lastSet.weight ?? 0, exercise.uses_body_weight)} × {lastSet.reps}
               </div>
               <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                 {format(new Date(lastSet.date), 'MMMM d, yyyy')}
@@ -209,7 +217,7 @@ export default function ExerciseDetail({
             </div>
             <div className="flex-1">
               <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">
-                {currentMax ? `${currentMax} lbs` : 'No data'}
+                {currentMax ? formatWeight(currentMax, exercise.uses_body_weight) : 'No data'}
               </div>
             </div>
           </div>
@@ -218,7 +226,7 @@ export default function ExerciseDetail({
 
       {/* Log New Set Form */}
       <div className="mb-6 sm:mb-8">
-        <SetLogForm exerciseId={exercise.id} onSuccess={handleSetLogged} />
+        <SetLogForm exerciseId={exercise.id} usesBodyWeight={exercise.uses_body_weight} onSuccess={handleSetLogged} />
       </div>
 
       {/* Personal Records */}
@@ -226,7 +234,7 @@ export default function ExerciseDetail({
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
           Personal Records
         </h2>
-        <PRList records={prs} />
+        <PRList records={prs} usesBodyWeight={exercise.uses_body_weight} />
       </div>
 
       {/* Progress Chart */}
@@ -243,7 +251,12 @@ export default function ExerciseDetail({
           Set History
         </h2>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
-          <HistoryTable sets={sets} />
+          <HistoryTable
+            sets={sets}
+            usesBodyWeight={exercise.uses_body_weight}
+            onSetUpdated={handleSetLogged}
+            onSetDeleted={handleSetLogged}
+          />
         </div>
       </div>
     </div>

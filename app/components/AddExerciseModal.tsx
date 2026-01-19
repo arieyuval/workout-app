@@ -110,6 +110,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
     if (exercise.exercise_type === 'strength') {
       setMuscleGroup(exercise.muscle_group as MuscleGroup);
       setDefaultPrReps(exercise.default_pr_reps);
+      setUsesBodyWeight(exercise.uses_body_weight ?? false);
     }
     setShowSuggestions(false);
   };
@@ -147,7 +148,8 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
 
     // Validate based on exercise type
     if (exerciseType === 'strength') {
-      if (defaultPrReps === '' || defaultPrReps < 1 || defaultPrReps > 50) {
+      // Validate defaultPrReps only if provided (optional field, defaults to 3)
+      if (defaultPrReps !== '' && (defaultPrReps < 1 || defaultPrReps > 50)) {
         setError('Default PR reps must be between 1 and 50');
         return;
       }
@@ -176,7 +178,8 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
           name: exerciseName.trim(),
           muscle_group: exerciseType === 'cardio' ? 'Cardio' : muscleGroup,
           exercise_type: exerciseType,
-          default_pr_reps: exerciseType === 'strength' ? defaultPrReps : 1, // Default to 1 for cardio
+          default_pr_reps: exerciseType === 'strength' ? (defaultPrReps || 3) : 1, // Default to 3 for strength, 1 for cardio
+          uses_body_weight: exerciseType === 'strength' ? usesBodyWeight : false,
         }),
       });
 
@@ -226,6 +229,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
       setExerciseType('strength');
       setMuscleGroup('Chest');
       setDefaultPrReps('');
+      setUsesBodyWeight(false);
       setPrWeight('');
       setPrReps('');
       setPrDistance('');
@@ -252,6 +256,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
       setExerciseType('strength');
       setMuscleGroup('Chest');
       setDefaultPrReps('');
+      setUsesBodyWeight(false);
       setPrWeight('');
       setPrReps('');
       setPrDistance('');
@@ -373,7 +378,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
               {/* Default PR Reps */}
               <div>
                 <label htmlFor="pr-reps" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Default PR Reps *
+                  Default PR Reps
                 </label>
                 <input
                   id="pr-reps"
@@ -383,15 +388,32 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
                   max="50"
                   value={defaultPrReps}
                   onChange={(e) => setDefaultPrReps(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  placeholder="e.g., 1"
+                  placeholder="3"
                   disabled={isSubmitting}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
-                  required
                 />
                 <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                  The rep max to display on the card (e.g., 1 for 1RM)
+                  The rep max to display on the card (defaults to 3)
                 </p>
               </div>
+
+              {/* Uses Body Weight Toggle */}
+              <div className="flex items-center gap-3">
+                <input
+                  id="uses-body-weight"
+                  type="checkbox"
+                  checked={usesBodyWeight}
+                  onChange={(e) => setUsesBodyWeight(e.target.checked)}
+                  disabled={isSubmitting}
+                  className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 disabled:opacity-50"
+                />
+                <label htmlFor="uses-body-weight" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Uses body weight
+                </label>
+              </div>
+              <p className="-mt-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 ml-7">
+                For exercises like pull-ups or dips where you add weight to body weight
+              </p>
 
               {/* Initial PR (Optional) */}
               <div>

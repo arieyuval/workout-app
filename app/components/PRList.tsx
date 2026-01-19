@@ -4,11 +4,20 @@ import type { PersonalRecord } from '@/lib/types';
 import { format, isAfter, subDays } from 'date-fns';
 import { Award } from 'lucide-react';
 
+// Format weight display for body weight vs regular exercises
+const formatWeight = (weight: number, usesBodyWeight: boolean): string => {
+  if (!usesBodyWeight) {
+    return `${weight} lbs`;
+  }
+  return weight > 0 ? `BW + ${weight} lbs` : 'BW';
+};
+
 interface PRListProps {
   records: PersonalRecord[];
+  usesBodyWeight?: boolean;
 }
 
-export default function PRList({ records }: PRListProps) {
+export default function PRList({ records, usesBodyWeight = false }: PRListProps) {
   const isRecent = (date: string) => {
     const prDate = new Date(date);
     const sevenDaysAgo = subDays(new Date(), 7);
@@ -55,7 +64,7 @@ export default function PRList({ records }: PRListProps) {
           </div>
 
           <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-            {record.weight} lbs
+            {formatWeight(record.weight, usesBodyWeight)}
           </div>
 
           <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">

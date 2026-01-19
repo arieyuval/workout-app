@@ -5,6 +5,7 @@ import type { SetFormData } from '@/lib/types';
 
 interface SetLogFormProps {
   exerciseId: string;
+  usesBodyWeight?: boolean;
   onSuccess: () => void;
 }
 
@@ -34,7 +35,7 @@ const getLocalDateISO = () => {
   return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
 };
 
-export default function SetLogForm({ exerciseId, onSuccess }: SetLogFormProps) {
+export default function SetLogForm({ exerciseId, usesBodyWeight = false, onSuccess }: SetLogFormProps) {
   const [formData, setFormData] = useState<SetFormData>({
     weight: 0,
     reps: 0,
@@ -98,7 +99,7 @@ export default function SetLogForm({ exerciseId, onSuccess }: SetLogFormProps) {
       <div className="flex items-end gap-3 sm:gap-4">
         <div className="flex-1">
           <label htmlFor="weight" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
-            Weight (lbs)
+            {usesBodyWeight ? 'Added Weight (lbs)' : 'Weight (lbs)'}
           </label>
           <input
             id="weight"
@@ -106,6 +107,7 @@ export default function SetLogForm({ exerciseId, onSuccess }: SetLogFormProps) {
             step="0.01"
             min="0"
             inputMode="decimal"
+            placeholder={usesBodyWeight ? '0 for BW only' : ''}
             value={formData.weight || ''}
             onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 0 })}
             className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"

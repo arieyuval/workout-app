@@ -16,7 +16,7 @@ export async function GET() {
     // Fetch all sets for the user with exercise details
     const { data: sets, error } = await supabase
       .from('sets')
-      .select('*, exercises(name, muscle_group, exercise_type)')
+      .select('*, exercises(name, muscle_group, exercise_type, uses_body_weight)')
       .eq('user_id', user.id)
       .order('date', { ascending: false });
 
@@ -34,6 +34,7 @@ export async function GET() {
       exercise_name: set.exercises?.name,
       muscle_group: set.exercises?.muscle_group,
       exercise_type: set.exercises?.exercise_type,
+      uses_body_weight: set.exercises?.uses_body_weight ?? false,
       exercises: undefined, // Remove the nested object
     }));
 

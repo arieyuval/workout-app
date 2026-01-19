@@ -67,6 +67,14 @@ const getLocalDateISO = () => {
   return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
 };
 
+// Format weight display for body weight vs regular exercises
+const formatWeight = (weight: number, usesBodyWeight: boolean): string => {
+  if (!usesBodyWeight) {
+    return `${weight}`;
+  }
+  return weight > 0 ? `BW + ${weight}` : 'BW';
+};
+
 export default function ExerciseCard({ exercise, topSetLastSession, lastSet, currentMax, onSetLogged }: ExerciseCardProps) {
   const [weight, setWeight] = useState(0);
   const [reps, setReps] = useState(0);
@@ -143,11 +151,11 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
           {/* Top Set Last Session */}
           <div className="bg-gray-50 dark:bg-gray-900 p-2 sm:p-3 rounded-md">
             <div className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 mb-1">
-              Last Sessions Top Set
+              Last Session
             </div>
             {topSetLastSession ? (
               <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
-                {topSetLastSession.weight} × {topSetLastSession.reps}
+                {formatWeight(topSetLastSession.weight ?? 0, exercise.uses_body_weight)} × {topSetLastSession.reps}
               </div>
             ) : (
               <div className="text-xs sm:text-sm text-gray-400">-</div>
@@ -161,7 +169,7 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
             </div>
             {lastSet ? (
               <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
-                {lastSet.weight} × {lastSet.reps}
+                {formatWeight(lastSet.weight ?? 0, exercise.uses_body_weight)} × {lastSet.reps}
               </div>
             ) : (
               <div className="text-xs sm:text-sm text-gray-400">-</div>
@@ -173,9 +181,9 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
             <div className={`text-[9px] sm:text-[10px] ${prColors.text} mb-1 font-medium`}>
               {exercise.default_pr_reps}RM PR
             </div>
-            {currentMax ? (
+            {currentMax !== null ? (
               <div className={`text-xs sm:text-sm font-bold ${prColors.text}`}>
-                {currentMax} lbs
+                {formatWeight(currentMax, exercise.uses_body_weight)} lbs
               </div>
             ) : (
               <div className="text-xs sm:text-sm text-gray-400">-</div>
@@ -194,7 +202,7 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
             type="number"
             inputMode="decimal"
             step="0.01"
-            placeholder="Wt"
+            placeholder={exercise.uses_body_weight ? '+Wt' : 'Wt'}
             value={weight || ''}
             onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
             className="w-20 sm:w-24 px-2 py-2 text-sm sm:text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
