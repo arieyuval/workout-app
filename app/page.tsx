@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, History } from 'lucide-react';
 import SearchBar from './components/SearchBar';
 import MuscleTabs from './components/MuscleTabs';
 import ExerciseCard from './components/ExerciseCard';
@@ -13,10 +14,24 @@ import type { Exercise, WorkoutSet, MuscleGroup } from '@/lib/types';
 export default function Home() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [sets, setSets] = useState<Record<string, WorkoutSet[]>>({});
-  const [activeTab, setActiveTab] = useState<MuscleGroup>('All');
+  const [activeTab, setActiveTab] = useState<MuscleGroup>(() => {
+    // Restore tab from sessionStorage on initial load
+    if (typeof window !== 'undefined') {
+      const savedTab = sessionStorage.getItem('activeExerciseTab');
+      if (savedTab) {
+        return savedTab as MuscleGroup;
+      }
+    }
+    return 'All';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Persist active tab to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('activeExerciseTab', activeTab);
+  }, [activeTab]);
 
   // Fetch exercises data
   const fetchExercises = async () => {
@@ -47,8 +62,11 @@ export default function Home() {
     }
   };
 
-  // Fetch exercises on mount
+  // Initialize user profile (for new signups with weight data) and fetch exercises on mount
   useEffect(() => {
+    // Try to init profile from signup metadata (silent, fire-and-forget)
+    fetch('/api/profile/init', { method: 'POST' }).catch(() => {});
+
     fetchExercises();
   }, []);
 
@@ -85,19 +103,42 @@ export default function Home() {
       });
   }, [exercises, activeTab, searchQuery, sets]);
 
-  // Helper to get last set (excluding today) for an exercise
-  const getLastSet = (exerciseId: string): WorkoutSet | null => {
+  // Helper to get the top (heaviest) set from the last session (excluding today)
+  const getTopSetLastSession = (exerciseId: string): WorkoutSet | null => {
     const exerciseSets = sets[exerciseId] || [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Filter to sets before today
     const previousSets = exerciseSets.filter((set) => {
       const setDate = new Date(set.date);
       setDate.setHours(0, 0, 0, 0);
       return setDate < today;
     });
 
-    return previousSets.length > 0 ? previousSets[0] : null;
+    if (previousSets.length === 0) return null;
+
+    // Find the most recent date (last session)
+    const lastSessionDate = new Date(previousSets[0].date);
+    lastSessionDate.setHours(0, 0, 0, 0);
+
+    // Get all sets from that day
+    const lastSessionSets = previousSets.filter((set) => {
+      const setDate = new Date(set.date);
+      setDate.setHours(0, 0, 0, 0);
+      return setDate.getTime() === lastSessionDate.getTime();
+    });
+
+    // Find the set with the highest weight
+    return lastSessionSets.reduce((max, set) =>
+      (set.weight ?? 0) > (max.weight ?? 0) ? set : max
+    , lastSessionSets[0]);
+  };
+
+  // Helper to get the most recent set logged (including today)
+  const getLastSet = (exerciseId: string): WorkoutSet | null => {
+    const exerciseSets = sets[exerciseId] || [];
+    return exerciseSets.length > 0 ? exerciseSets[0] : null;
   };
 
   // Helper to get current max for default PR reps (strength exercises)
@@ -175,7 +216,14 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
         {/* Header */}
         <header className="mb-6 sm:mb-8">
-          <div className="flex justify-end mb-2">
+          <div className="flex justify-between mb-2">
+            <Link
+              href="/history"
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              aria-label="Workout history"
+            >
+              <History className="w-5 h-5 sm:w-6 sm:h-6" />
+            </Link>
             <UserMenu />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-900 dark:text-white mb-2">
@@ -215,6 +263,7 @@ export default function Home() {
                   <ExerciseCard
                     key={exercise.id}
                     exercise={exercise}
+                    topSetLastSession={getTopSetLastSession(exercise.id)}
                     lastSet={getLastSet(exercise.id)}
                     currentMax={getCurrentMax(exercise.id, exercise.default_pr_reps)}
                     onSetLogged={() => handleSetLogged(exercise.id)}

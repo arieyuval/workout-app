@@ -1,0 +1,336 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
+import type { WorkoutSet } from '@/lib/types';
+
+interface SetWithExercise extends WorkoutSet {
+  exercise_name?: string;
+  muscle_group?: string;
+  exercise_type?: string;
+}
+
+interface ExerciseGroup {
+  exerciseId: string;
+  exerciseName: string;
+  exerciseType: string;
+  topSet: SetWithExercise;
+  otherSets: SetWithExercise[];
+}
+
+interface DayGroup {
+  dateKey: string;
+  displayDate: string;
+  exercises: ExerciseGroup[];
+}
+
+// Get user's timezone or default to PST
+const getUserTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles';
+  } catch {
+    return 'America/Los_Angeles';
+  }
+};
+
+// Get date key (YYYY-MM-DD) in user's timezone
+const getDateKey = (date: Date, timezone: string) => {
+  const year = date.toLocaleString('en-US', { year: 'numeric', timeZone: timezone });
+  const month = date.toLocaleString('en-US', { month: '2-digit', timeZone: timezone });
+  const day = date.toLocaleString('en-US', { day: '2-digit', timeZone: timezone });
+  return `${year}-${month}-${day}`;
+};
+
+// Format date for display
+const formatDisplayDate = (date: Date, timezone: string) => {
+  return date.toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: timezone,
+  });
+};
+
+// Format time for display
+const formatTime = (date: Date, timezone: string) => {
+  return date.toLocaleString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: timezone,
+  });
+};
+
+export default function HistoryPage() {
+  const [sets, setSets] = useState<SetWithExercise[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
+  const timezone = getUserTimezone();
+
+  useEffect(() => {
+    async function fetchSets() {
+      try {
+        const response = await fetch('/api/sets/all');
+        if (response.ok) {
+          const data = await response.json();
+          setSets(data);
+        }
+      } catch (error) {
+        console.error('Error fetching sets:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchSets();
+  }, []);
+
+  // Group sets by day, then by exercise
+  const groupedByDay = useMemo(() => {
+    const dayMap = new Map<string, Map<string, SetWithExercise[]>>();
+
+    sets.forEach((set) => {
+      const date = new Date(set.date);
+      const dateKey = getDateKey(date, timezone);
+
+      if (!dayMap.has(dateKey)) {
+        dayMap.set(dateKey, new Map());
+      }
+
+      const exerciseMap = dayMap.get(dateKey)!;
+      const exerciseId = set.exercise_id;
+
+      if (!exerciseMap.has(exerciseId)) {
+        exerciseMap.set(exerciseId, []);
+      }
+
+      exerciseMap.get(exerciseId)!.push(set);
+    });
+
+    // Convert to array of DayGroup
+    const dayGroups: DayGroup[] = Array.from(dayMap.entries())
+      .sort(([a], [b]) => b.localeCompare(a)) // Sort days newest first
+      .map(([dateKey, exerciseMap]) => {
+        const exercises: ExerciseGroup[] = Array.from(exerciseMap.entries())
+          .map(([exerciseId, exerciseSets]) => {
+            // Sort sets: for strength by weight desc, for cardio by distance desc
+            const sortedSets = [...exerciseSets].sort((a, b) => {
+              if (a.exercise_type === 'cardio') {
+                return (b.distance || 0) - (a.distance || 0);
+              }
+              return (b.weight || 0) - (a.weight || 0);
+            });
+
+            const topSet = sortedSets[0];
+            const otherSets = sortedSets.slice(1);
+
+            return {
+              exerciseId,
+              exerciseName: topSet.exercise_name || 'Unknown Exercise',
+              exerciseType: topSet.exercise_type || 'strength',
+              topSet,
+              otherSets,
+            };
+          })
+          // Sort exercises by their first set time (earliest first)
+          .sort((a, b) => {
+            const aTime = new Date(a.topSet.date).getTime();
+            const bTime = new Date(b.topSet.date).getTime();
+            return aTime - bTime;
+          });
+
+        // Get display date from first exercise's top set
+        const firstSet = exercises[0]?.topSet;
+        const displayDate = firstSet
+          ? formatDisplayDate(new Date(firstSet.date), timezone)
+          : dateKey;
+
+        return {
+          dateKey,
+          displayDate,
+          exercises,
+        };
+      });
+
+    return dayGroups;
+  }, [sets, timezone]);
+
+  const toggleExercise = (dateKey: string, exerciseId: string) => {
+    const key = `${dateKey}-${exerciseId}`;
+    setExpandedExercises((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const isExpanded = (dateKey: string, exerciseId: string) => {
+    return expandedExercises.has(`${dateKey}-${exerciseId}`);
+  };
+
+  // Format set display based on exercise type
+  const formatSetDisplay = (set: SetWithExercise, inline: boolean = false) => {
+    if (set.exercise_type === 'cardio') {
+      const distance = set.distance?.toFixed(2) || '0';
+      const duration = set.duration || 0;
+      const hours = Math.floor(duration / 60);
+      const mins = duration % 60;
+      const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      if (inline) {
+        return { inline: `${distance} mi • ${timeStr}` };
+      }
+      return { primary: `${distance} mi`, secondary: timeStr };
+    }
+    if (inline) {
+      return { inline: `${set.weight} lbs × ${set.reps} reps` };
+    }
+    return { primary: `${set.weight} lbs`, secondary: `${set.reps} reps` };
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+              Back to Exercises
+            </Link>
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+              Workout History
+            </h1>
+            <div className="w-24 sm:w-32" /> {/* Spacer for centering */}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        {groupedByDay.length === 0 ? (
+          <div className="text-center text-gray-500 dark:text-gray-400 py-12">
+            No workout history yet. Start logging your sets!
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {groupedByDay.map((dayGroup) => (
+              <div
+                key={dayGroup.dateKey}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden"
+              >
+                {/* Day Header */}
+                <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-semibold text-gray-900 dark:text-white">
+                      {dayGroup.displayDate}
+                    </h2>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {dayGroup.exercises.length} exercise{dayGroup.exercises.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Exercises */}
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {dayGroup.exercises.map((exercise) => {
+                    const expanded = isExpanded(dayGroup.dateKey, exercise.exerciseId);
+                    const hasMoreSets = exercise.otherSets.length > 0;
+                    const topSetDisplay = formatSetDisplay(exercise.topSet, true);
+
+                    return (
+                      <div key={exercise.exerciseId}>
+                        {/* Exercise Row */}
+                        <div
+                          onClick={() => hasMoreSets && toggleExercise(dayGroup.dateKey, exercise.exerciseId)}
+                          className={`flex items-center px-4 py-3 ${
+                            hasMoreSets ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50' : ''
+                          }`}
+                        >
+                          {/* Chevron */}
+                          <div className="w-6 flex-shrink-0">
+                            {hasMoreSets && (
+                              <button className="text-gray-400">
+                                {expanded ? (
+                                  <ChevronDown className="w-4 h-4" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Exercise Name */}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-900 dark:text-white truncate">
+                              {exercise.exerciseName}
+                            </div>
+                            {hasMoreSets && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {exercise.otherSets.length + 1} sets
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Top Set Display - Inline format */}
+                          <div className="text-right flex-shrink-0">
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {topSetDisplay.inline}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Expanded Sets */}
+                        {expanded && exercise.otherSets.length > 0 && (
+                          <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
+                            {exercise.otherSets.map((set) => {
+                              const setDisplay = formatSetDisplay(set);
+                              return (
+                                <div
+                                  key={set.id}
+                                  className="flex items-center px-4 py-2 pl-10 border-b border-gray-100 dark:border-gray-800 last:border-b-0"
+                                >
+                                  <div className="flex-1 text-sm text-gray-600 dark:text-gray-400">
+                                    {formatTime(new Date(set.date), timezone)}
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                                      {setDisplay.primary}
+                                    </span>
+                                    <span className="text-gray-500 dark:text-gray-400 ml-2 text-sm">
+                                      {setDisplay.secondary}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

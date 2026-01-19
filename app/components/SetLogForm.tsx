@@ -95,8 +95,8 @@ export default function SetLogForm({ exerciseId, onSuccess }: SetLogFormProps) {
         Log New Set
       </h3>
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <div>
+      <div className="flex items-end gap-3 sm:gap-4">
+        <div className="flex-1">
           <label htmlFor="weight" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
             Weight (lbs)
           </label>
@@ -113,7 +113,9 @@ export default function SetLogForm({ exerciseId, onSuccess }: SetLogFormProps) {
           />
         </div>
 
-        <div>
+        <span className="flex items-center text-gray-400 text-lg pb-2.5 sm:pb-2">×</span>
+
+        <div className="flex-1">
           <label htmlFor="reps" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
             Reps
           </label>

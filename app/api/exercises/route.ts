@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
         .insert({
           ...body,
           is_base: false,
+          uses_body_weight: body.uses_body_weight ?? false,
         })
         .select()
         .single();

@@ -8,6 +8,8 @@ export default function LoginPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [currentWeight, setCurrentWeight] = useState('');
+  const [goalWeight, setGoalWeight] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,13 +26,16 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data: authData, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
               name: name.trim(),
+              // Store weight data in user metadata for later saving
+              initial_weight: currentWeight ? parseFloat(currentWeight) : null,
+              goal_weight: goalWeight ? parseFloat(goalWeight) : null,
             },
           },
         });
@@ -38,6 +43,7 @@ export default function LoginPage() {
         if (error) throw error;
 
         // Sign up successful, redirect to home
+        // Weight data will be saved on first page load via API
         router.push('/');
         router.refresh();
       } else {
@@ -125,6 +131,51 @@ export default function LoginPage() {
                 placeholder="••••••••"
               />
             </div>
+
+            {isSignUp && (
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Track your body weight progress (optional)
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
+                  This is for your personal body weight tracking. You can add weigh-ins and monitor your progress over time.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="currentWeight" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Current Weight (lbs)
+                    </label>
+                    <input
+                      id="currentWeight"
+                      name="currentWeight"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={currentWeight}
+                      onChange={(e) => setCurrentWeight(e.target.value)}
+                      className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
+                      placeholder="e.g., 180"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="goalWeight" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Goal Weight (lbs)
+                    </label>
+                    <input
+                      id="goalWeight"
+                      name="goalWeight"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={goalWeight}
+                      onChange={(e) => setGoalWeight(e.target.value)}
+                      className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
+                      placeholder="e.g., 170"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {error && (
@@ -156,6 +207,8 @@ export default function LoginPage() {
               setError(null);
               setMessage(null);
               setName('');
+              setCurrentWeight('');
+              setGoalWeight('');
             }}
             className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500"
           >

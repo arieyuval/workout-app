@@ -37,6 +37,8 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
   // Cardio PR fields
   const [prDistance, setPrDistance] = useState<number | ''>('');
   const [prDuration, setPrDuration] = useState<number | ''>('');
+  // Body weight exercise toggle
+  const [usesBodyWeight, setUsesBodyWeight] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 

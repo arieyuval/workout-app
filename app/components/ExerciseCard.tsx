@@ -7,6 +7,7 @@ import { ChevronRight, Plus } from 'lucide-react';
 
 interface ExerciseCardProps {
   exercise: Exercise;
+  topSetLastSession: WorkoutSet | null;
   lastSet: WorkoutSet | null;
   currentMax: number | null;
   onSetLogged?: () => void;
@@ -66,7 +67,7 @@ const getLocalDateISO = () => {
   return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
 };
 
-export default function ExerciseCard({ exercise, lastSet, currentMax, onSetLogged }: ExerciseCardProps) {
+export default function ExerciseCard({ exercise, topSetLastSession, lastSet, currentMax, onSetLogged }: ExerciseCardProps) {
   const [weight, setWeight] = useState(0);
   const [reps, setReps] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -138,32 +139,46 @@ export default function ExerciseCard({ exercise, lastSet, currentMax, onSetLogge
 
       {/* Stats Section */}
       <div className="px-4 sm:px-5 pb-3 space-y-2">
-        <div className="grid grid-cols-2 gap-3">
-          {/* Last Set */}
-          <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-md">
-            <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mb-1">
-              Last Set (exlcluding today)
+        <div className="grid grid-cols-3 gap-2">
+          {/* Top Set Last Session */}
+          <div className="bg-gray-50 dark:bg-gray-900 p-2 sm:p-3 rounded-md">
+            <div className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 mb-1">
+              Last Sessions Top Set
             </div>
-            {lastSet ? (
-              <div className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
-                {lastSet.reps} × {lastSet.weight}
+            {topSetLastSession ? (
+              <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
+                {topSetLastSession.weight} × {topSetLastSession.reps}
               </div>
             ) : (
-              <div className="text-sm text-gray-400">-</div>
+              <div className="text-xs sm:text-sm text-gray-400">-</div>
+            )}
+          </div>
+
+          {/* Last Set */}
+          <div className="bg-gray-50 dark:bg-gray-900 p-2 sm:p-3 rounded-md">
+            <div className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 mb-1">
+              Last Set
+            </div>
+            {lastSet ? (
+              <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
+                {lastSet.weight} × {lastSet.reps}
+              </div>
+            ) : (
+              <div className="text-xs sm:text-sm text-gray-400">-</div>
             )}
           </div>
 
           {/* PR */}
-          <div className={`${prColors.bg} p-3 rounded-md`}>
-            <div className={`text-[10px] sm:text-xs ${prColors.text} mb-1 font-medium`}>
+          <div className={`${prColors.bg} p-2 sm:p-3 rounded-md`}>
+            <div className={`text-[9px] sm:text-[10px] ${prColors.text} mb-1 font-medium`}>
               {exercise.default_pr_reps}RM PR
             </div>
             {currentMax ? (
-              <div className={`text-sm sm:text-base font-bold ${prColors.text}`}>
+              <div className={`text-xs sm:text-sm font-bold ${prColors.text}`}>
                 {currentMax} lbs
               </div>
             ) : (
-              <div className="text-sm text-gray-400">-</div>
+              <div className="text-xs sm:text-sm text-gray-400">-</div>
             )}
           </div>
         </div>
@@ -177,22 +192,22 @@ export default function ExerciseCard({ exercise, lastSet, currentMax, onSetLogge
         <div className="flex gap-2">
           <input
             type="number"
-            inputMode="numeric"
-            placeholder="Reps"
-            value={reps || ''}
-            onChange={(e) => setReps(parseInt(e.target.value) || 0)}
-            className="w-16 sm:w-20 px-2 py-2 text-sm sm:text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <span className="flex items-center text-gray-400 text-sm">×</span>
-          <input
-            type="number"
             inputMode="decimal"
             step="0.01"
             placeholder="Wt"
             value={weight || ''}
             onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
             className="w-20 sm:w-24 px-2 py-2 text-sm sm:text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <span className="flex items-center text-gray-400 text-sm">×</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="Reps"
+            value={reps || ''}
+            onChange={(e) => setReps(parseInt(e.target.value) || 0)}
+            className="w-16 sm:w-20 px-2 py-2 text-sm sm:text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
             onClick={(e) => e.stopPropagation()}
           />
           <button
