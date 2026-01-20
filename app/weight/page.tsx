@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Trash2, Target, Pencil } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Target, Pencil, Check, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { format } from 'date-fns';
 import type { BodyWeightLog, UserProfile } from '@/lib/types';
@@ -16,6 +16,9 @@ export default function WeightPage() {
   const [goalWeight, setGoalWeight] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditingGoal, setIsEditingGoal] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [editWeight, setEditWeight] = useState('');
+  const [editNotes, setEditNotes] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -88,6 +91,45 @@ export default function WeightPage() {
       }
     } catch (error) {
       console.error('Error deleting log:', error);
+    }
+  };
+
+  const startEditingLog = (log: BodyWeightLog) => {
+    setEditingLogId(log.id);
+    setEditWeight(log.weight.toString());
+    setEditNotes(log.notes || '');
+  };
+
+  const cancelEditingLog = () => {
+    setEditingLogId(null);
+    setEditWeight('');
+    setEditNotes('');
+  };
+
+  const handleUpdateLog = async (id: string) => {
+    if (!editWeight || parseFloat(editWeight) <= 0) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/weight-logs/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weight: parseFloat(editWeight),
+          notes: editNotes || null,
+        }),
+      });
+
+      if (response.ok) {
+        setEditingLogId(null);
+        setEditWeight('');
+        setEditNotes('');
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Error updating log:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -423,23 +465,86 @@ export default function WeightPage() {
               {logs.map((log) => (
                 <div
                   key={log.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                  className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
                 >
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {log.weight} lbs
+                  {editingLogId === log.id ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          value={editWeight}
+                          onChange={(e) => setEditWeight(e.target.value)}
+                          className="w-24 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          placeholder="Weight"
+                          autoFocus
+                        />
+                        <span className="text-sm text-gray-500">lbs</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={editNotes}
+                        onChange={(e) => setEditNotes(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="Notes (optional)"
+                      />
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {format(new Date(log.date), 'MMM d, yyyy h:mm a')}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleUpdateLog(log.id)}
+                            disabled={isSubmitting || !editWeight}
+                            className="p-1.5 text-green-600 hover:text-green-700 disabled:opacity-50"
+                            title="Save"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={cancelEditingLog}
+                            className="p-1.5 text-gray-400 hover:text-gray-600"
+                            title="Cancel"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {format(new Date(log.date), 'MMM d, yyyy h:mm a')}
-                      {log.notes && ` - ${log.notes}`}
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {log.weight} lbs
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {format(new Date(log.date), 'MMM d, yyyy h:mm a')}
+                        </div>
+                        {log.notes && (
+                          <div className="mt-1 text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                            {log.notes}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEditingLog(log)}
+                          className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLog(log.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-500"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteLog(log.id)}
-                    className="p-1 text-gray-400 hover:text-red-500"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  )}
                 </div>
               ))}
             </div>

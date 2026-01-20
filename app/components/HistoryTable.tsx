@@ -53,6 +53,7 @@ export default function HistoryTable({ sets, usesBodyWeight = false, onSetUpdate
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editWeight, setEditWeight] = useState<number>(0);
   const [editReps, setEditReps] = useState<number>(0);
+  const [editNotes, setEditNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const timezone = getUserTimezone();
 
@@ -122,6 +123,7 @@ export default function HistoryTable({ sets, usesBodyWeight = false, onSetUpdate
     setEditingSetId(set.id);
     setEditWeight(set.weight ?? 0);
     setEditReps(set.reps ?? 0);
+    setEditNotes(set.notes ?? '');
   };
 
   const cancelEditing = (e: React.MouseEvent) => {
@@ -141,6 +143,7 @@ export default function HistoryTable({ sets, usesBodyWeight = false, onSetUpdate
         body: JSON.stringify({
           weight: editWeight,
           reps: editReps,
+          notes: editNotes || null,
         }),
       });
 
@@ -214,13 +217,8 @@ export default function HistoryTable({ sets, usesBodyWeight = false, onSetUpdate
 
     return (
       <div className="flex items-center gap-2">
-        <div className="text-right">
-          <div className={`text-sm sm:text-base ${isTopSet ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
-            {formatWeight(set.weight ?? 0, usesBodyWeight)}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            {set.reps} reps
-          </div>
+        <div className={`text-sm sm:text-base ${isTopSet ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
+          {formatWeight(set.weight ?? 0, usesBodyWeight)} × {set.reps}
         </div>
         <button
           onClick={(e) => startEditing(set, e)}
@@ -238,6 +236,33 @@ export default function HistoryTable({ sets, usesBodyWeight = false, onSetUpdate
         </button>
       </div>
     );
+  };
+
+  const renderNotesSection = (set: WorkoutSet) => {
+    const isEditing = editingSetId === set.id;
+
+    if (isEditing) {
+      return (
+        <input
+          type="text"
+          value={editNotes}
+          onChange={(e) => setEditNotes(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+          placeholder="Notes (optional)"
+        />
+      );
+    }
+
+    if (set.notes) {
+      return (
+        <div className="text-sm text-gray-700 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded border-l-2 border-blue-400">
+          {set.notes}
+        </div>
+      );
+    }
+
+    return null;
   };
 
   if (sets.length === 0) {
@@ -293,11 +318,7 @@ export default function HistoryTable({ sets, usesBodyWeight = false, onSetUpdate
 
               {/* Center: Notes */}
               <div className="flex-1 min-w-0 px-2 sm:px-4">
-                {dayGroup.topSet.notes && (
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                    {dayGroup.topSet.notes}
-                  </div>
-                )}
+                {renderNotesSection(dayGroup.topSet)}
               </div>
 
               {/* Right: Weight/Reps with Edit */}
@@ -323,11 +344,7 @@ export default function HistoryTable({ sets, usesBodyWeight = false, onSetUpdate
 
                     {/* Center: Notes */}
                     <div className="flex-1 min-w-0 px-2 sm:px-4">
-                      {set.notes && (
-                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                          {set.notes}
-                        </div>
-                      )}
+                      {renderNotesSection(set)}
                     </div>
 
                     {/* Right: Weight/Reps with Edit */}

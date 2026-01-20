@@ -45,6 +45,7 @@ export default function CardioHistoryTable({ sets, onSetUpdated, onSetDeleted }:
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editDistance, setEditDistance] = useState<number>(0);
   const [editDuration, setEditDuration] = useState<number>(0);
+  const [editNotes, setEditNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const timezone = getUserTimezone();
 
@@ -120,6 +121,7 @@ export default function CardioHistoryTable({ sets, onSetUpdated, onSetDeleted }:
     setEditingSetId(set.id);
     setEditDistance(set.distance ?? 0);
     setEditDuration(set.duration ?? 0);
+    setEditNotes(set.notes ?? '');
   };
 
   const cancelEditing = (e: React.MouseEvent) => {
@@ -139,6 +141,7 @@ export default function CardioHistoryTable({ sets, onSetUpdated, onSetDeleted }:
         body: JSON.stringify({
           distance: editDistance,
           duration: editDuration,
+          notes: editNotes || null,
         }),
       });
 
@@ -249,6 +252,33 @@ export default function CardioHistoryTable({ sets, onSetUpdated, onSetDeleted }:
     );
   };
 
+  const renderNotesSection = (set: WorkoutSet) => {
+    const isEditing = editingSetId === set.id;
+
+    if (isEditing) {
+      return (
+        <input
+          type="text"
+          value={editNotes}
+          onChange={(e) => setEditNotes(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+          placeholder="Notes (optional)"
+        />
+      );
+    }
+
+    if (set.notes) {
+      return (
+        <div className="text-sm text-gray-700 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded border-l-2 border-blue-400">
+          {set.notes}
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   if (sets.length === 0) {
     return (
       <div className="text-center text-gray-500 dark:text-gray-400 py-8">
@@ -302,11 +332,7 @@ export default function CardioHistoryTable({ sets, onSetUpdated, onSetDeleted }:
 
               {/* Center: Notes */}
               <div className="flex-1 min-w-0 px-2 sm:px-4">
-                {dayGroup.topSet.notes && (
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                    {dayGroup.topSet.notes}
-                  </div>
-                )}
+                {renderNotesSection(dayGroup.topSet)}
               </div>
 
               {/* Right: Distance/Duration + Pace with Edit */}
@@ -332,11 +358,7 @@ export default function CardioHistoryTable({ sets, onSetUpdated, onSetDeleted }:
 
                     {/* Center: Notes */}
                     <div className="flex-1 min-w-0 px-2 sm:px-4">
-                      {set.notes && (
-                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                          {set.notes}
-                        </div>
-                      )}
+                      {renderNotesSection(set)}
                     </div>
 
                     {/* Right: Distance/Duration + Pace with Edit */}

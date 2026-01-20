@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function DELETE(
   request: NextRequest,
@@ -7,13 +7,24 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const supabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
     const { error } = await supabase
       .from('sets')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user.id);
 
     if (error) {
+      console.error('Error deleting set:', error);
       return NextResponse.json(
         { error: 'Failed to delete set' },
         { status: 500 }
@@ -36,16 +47,28 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+    const supabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     const { data, error } = await supabase
       .from('sets')
       .update(body)
       .eq('id', id)
+      .eq('user_id', user.id)
       .select()
       .single();
 
     if (error) {
+      console.error('Error updating set:', error);
       return NextResponse.json(
         { error: 'Failed to update set' },
         { status: 500 }

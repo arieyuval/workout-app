@@ -81,6 +81,7 @@ export default function HistoryPage() {
   const [editReps, setEditReps] = useState<number>(0);
   const [editDistance, setEditDistance] = useState<number>(0);
   const [editDuration, setEditDuration] = useState<number>(0);
+  const [editNotes, setEditNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const timezone = getUserTimezone();
 
@@ -204,6 +205,7 @@ export default function HistoryPage() {
   const startEditing = (set: SetWithExercise, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingSetId(set.id);
+    setEditNotes(set.notes ?? '');
     if (set.exercise_type === 'cardio') {
       setEditDistance(set.distance ?? 0);
       setEditDuration(set.duration ?? 0);
@@ -225,8 +227,8 @@ export default function HistoryPage() {
     setIsSubmitting(true);
     try {
       const body = set.exercise_type === 'cardio'
-        ? { distance: editDistance, duration: editDuration }
-        : { weight: editWeight, reps: editReps };
+        ? { distance: editDistance, duration: editDuration, notes: editNotes || null }
+        : { weight: editWeight, reps: editReps, notes: editNotes || null };
 
       const response = await fetch(`/api/sets/${editingSetId}`, {
         method: 'PATCH',
@@ -365,6 +367,34 @@ export default function HistoryPage() {
     );
   };
 
+  // Render notes section - shows input when editing, otherwise shows notes
+  const renderNotesSection = (set: SetWithExercise) => {
+    const isEditing = editingSetId === set.id;
+
+    if (isEditing) {
+      return (
+        <input
+          type="text"
+          value={editNotes}
+          onChange={(e) => setEditNotes(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+          placeholder="Notes (optional)"
+        />
+      );
+    }
+
+    if (set.notes) {
+      return (
+        <div className="text-sm text-gray-700 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded border-l-2 border-blue-400">
+          {set.notes}
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   // Format set display based on exercise type
   const formatSetDisplay = (set: SetWithExercise, inline: boolean = false) => {
     if (set.exercise_type === 'cardio') {
@@ -380,9 +410,9 @@ export default function HistoryPage() {
     }
     const weightStr = formatWeight(set.weight ?? 0, set.uses_body_weight ?? false);
     if (inline) {
-      return { inline: `${weightStr} × ${set.reps} reps` };
+      return { inline: `${weightStr} × ${set.reps}` };
     }
-    return { primary: weightStr, secondary: `${set.reps} reps` };
+    return { primary: weightStr, secondary: `${set.reps}` };
   };
 
   if (loading) {
@@ -468,7 +498,7 @@ export default function HistoryPage() {
                           </div>
 
                           {/* Exercise Name */}
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 mr-2">
                             <div className="font-medium text-gray-900 dark:text-white truncate">
                               {exercise.exerciseName}
                             </div>
@@ -477,6 +507,9 @@ export default function HistoryPage() {
                                 {exercise.otherSets.length + 1} sets
                               </div>
                             )}
+                            <div className="mt-1">
+                              {renderNotesSection(exercise.topSet)}
+                            </div>
                           </div>
 
                           {/* Top Set Display with Edit/Delete */}
@@ -493,8 +526,13 @@ export default function HistoryPage() {
                                 key={set.id}
                                 className="flex items-center px-4 py-2 pl-10 border-b border-gray-100 dark:border-gray-800 last:border-b-0"
                               >
-                                <div className="flex-1 text-sm text-gray-600 dark:text-gray-400">
-                                  {formatTime(new Date(set.date), timezone)}
+                                <div className="flex-1 min-w-0 mr-2">
+                                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    {formatTime(new Date(set.date), timezone)}
+                                  </div>
+                                  <div className="mt-1">
+                                    {renderNotesSection(set)}
+                                  </div>
                                 </div>
                                 <div className="flex-shrink-0">
                                   {renderSetActions(set)}

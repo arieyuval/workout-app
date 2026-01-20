@@ -17,6 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Plates",
   description: "Track and manage your workouts",
+  icons: {
+    icon: "/plates-logo.png",
+    apple: "/plates-logo.png",
+  },
 };
 
 export default function RootLayout({
