@@ -118,14 +118,36 @@ export default function BodyWeightModal({ isOpen, onClose }: BodyWeightModalProp
 
   // Chart data - sorted oldest to newest for the chart
   const chartData = useMemo(() => {
-    return [...logs]
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .map((log) => ({
+    const sortedLogs = [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const goal = profile?.goal_weight;
+    const starting = sortedLogs[0]?.weight;
+
+    return sortedLogs.map((log, index) => {
+      const prevWeight = index > 0 ? sortedLogs[index - 1].weight : log.weight;
+      const change = log.weight - prevWeight;
+
+      // Determine segment color based on goal direction
+      let segmentColor = '#9CA3AF'; // gray default
+      if (goal && starting) {
+        if (goal > starting) {
+          // Trying to gain weight - increase is good
+          segmentColor = change >= 0 ? '#10B981' : '#EF4444'; // green if increase, red if decrease
+        } else if (goal < starting) {
+          // Trying to lose weight - decrease is good
+          segmentColor = change <= 0 ? '#10B981' : '#EF4444'; // green if decrease, red if increase
+        }
+      } else {
+        segmentColor = '#10B981'; // default green if no goal
+      }
+
+      return {
         date: format(new Date(log.date), 'MMM d'),
         weight: log.weight,
         fullDate: format(new Date(log.date), 'MMM d, yyyy'),
-      }));
-  }, [logs]);
+        segmentColor,
+      };
+    });
+  }, [logs, profile?.goal_weight]);
 
   // Calculate Y-axis domain to include goal weight and all data points
   const yAxisDomain = useMemo(() => {
@@ -158,6 +180,12 @@ export default function BodyWeightModal({ isOpen, onClose }: BodyWeightModalProp
 
   // Show chart if there's data OR a goal weight is set
   const showChart = chartData.length >= 1 || profile?.goal_weight;
+
+  // Determine if goal has been reached (for goal line color)
+  const goalReached = stats?.current && profile?.goal_weight && stats.current === profile.goal_weight;
+
+  // Goal line color - green if reached, blue otherwise
+  const goalLineColor = goalReached ? '#10B981' : '#3B82F6';
 
   if (!isOpen) return null;
 
@@ -195,7 +223,7 @@ export default function BodyWeightModal({ isOpen, onClose }: BodyWeightModalProp
             </div>
           ) : (
             <>
-              {/* Stats Cards - Order: Starting, Current, Change, Goal */}
+              {/* Stats Cards - Order: Starting, Change, Current, Goal */}
               {(stats || profile?.goal_weight) && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
@@ -205,15 +233,35 @@ export default function BodyWeightModal({ isOpen, onClose }: BodyWeightModalProp
                     </div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Current</div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">
-                      {stats?.current ? `${stats.current} lbs` : '-'}
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Change</div>
+                    <div className={`text-lg font-bold ${
+                      (() => {
+                        if (!stats?.change || stats.change === 0) return 'text-gray-900 dark:text-white';
+                        const goal = profile?.goal_weight;
+                        const starting = stats?.starting;
+                        if (!goal || !starting) return 'text-gray-900 dark:text-white';
+                        // If goal > starting (gaining), increase is green
+                        if (goal > starting) {
+                          return stats.change > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                        }
+                        // If goal < starting (losing), decrease is green
+                        if (goal < starting) {
+                          return stats.change < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                        }
+                        return 'text-gray-900 dark:text-white';
+                      })()
+                    }`}>
+                      {stats?.change !== undefined ? `${stats.change > 0 ? '+' : ''}${stats.change.toFixed(1)} lbs` : '-'}
                     </div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Change</div>
-                    <div className={`text-lg font-bold ${stats?.change && stats.change < 0 ? 'text-green-600 dark:text-green-400' : stats?.change && stats.change > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
-                      {stats?.change !== undefined ? `${stats.change > 0 ? '+' : ''}${stats.change.toFixed(1)} lbs` : '-'}
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Current</div>
+                    <div className={`text-lg font-bold ${
+                      stats?.current && profile?.goal_weight && stats.current === profile.goal_weight
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-gray-900 dark:text-white'
+                    }`}>
+                      {stats?.current ? `${stats.current} lbs` : '-'}
                     </div>
                   </div>
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
@@ -309,27 +357,26 @@ export default function BodyWeightModal({ isOpen, onClose }: BodyWeightModalProp
                         {profile?.goal_weight && (
                           <ReferenceLine
                             y={profile.goal_weight}
-                            stroke="#3B82F6"
+                            stroke={goalLineColor}
                             strokeDasharray="5 5"
                             strokeWidth={2}
                             label={{
                               value: `Goal: ${profile.goal_weight}`,
                               position: 'right',
-                              fill: '#3B82F6',
+                              fill: goalLineColor,
                               fontSize: 11,
                             }}
                           />
                         )}
-                        {chartData.length > 0 && (
-                          <Line
-                            type="monotone"
-                            dataKey="weight"
-                            stroke="#10B981"
-                            strokeWidth={2}
-                            dot={{ fill: '#10B981', r: 4 }}
-                            activeDot={{ r: 6 }}
-                          />
-                        )}
+                        {/* Weight line */}
+                        <Line
+                          type="monotone"
+                          dataKey="weight"
+                          stroke="#3B82F6"
+                          strokeWidth={2}
+                          dot={{ fill: '#3B82F6', r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>

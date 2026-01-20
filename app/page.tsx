@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, History } from 'lucide-react';
+import { Plus, History, Scale } from 'lucide-react';
 import SearchBar from './components/SearchBar';
 import MuscleTabs from './components/MuscleTabs';
 import ExerciseCard from './components/ExerciseCard';
@@ -216,14 +216,23 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
         {/* Header */}
         <header className="mb-6 sm:mb-8">
-          <div className="flex justify-between mb-2">
-            <Link
-              href="/history"
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-              aria-label="Workout history"
-            >
-              <History className="w-5 h-5 sm:w-6 sm:h-6" />
-            </Link>
+          <div className="flex justify-between items-start mb-2">
+            <div className="flex flex-row gap-2">
+              <Link
+                href="/history"
+                className="flex items-center gap-1.5 px-2 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+              >
+                <History className="w-4 h-4" />
+                <span className="text-sm">History</span>
+              </Link>
+              <Link
+                href="/weight"
+                className="flex items-center gap-1.5 px-2 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+              >
+                <Scale className="w-4 h-4" />
+                <span className="text-sm">Body Weight</span>
+              </Link>
+            </div>
             <UserMenu />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-900 dark:text-white mb-2">
