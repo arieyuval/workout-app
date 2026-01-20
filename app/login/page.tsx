@@ -69,7 +69,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
-            Workout Tracker
+            Plates
           </h1>
           <h2 className="mt-6 text-center text-xl text-gray-600 dark:text-gray-400">
             {isSignUp ? 'Create your account' : 'Sign in to your account'}
