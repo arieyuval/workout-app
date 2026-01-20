@@ -155,7 +155,7 @@ export default function WeightPage() {
 
       if (response.ok) {
         // Update profile state directly
-        setProfile((prev) => prev ? { ...prev, goal_weight: newGoalWeight } : prev);
+        setProfile((prev) => prev ? { ...prev, goal_weight: newGoalWeight ?? undefined } : prev);
         setIsEditingGoal(false);
       }
     } catch (error) {
