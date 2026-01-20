@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Trash2, Target, Pencil, Check, X } from 'lucide-react';
+import NavBar from '../components/NavBar';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { format } from 'date-fns';
 import type { BodyWeightLog, UserProfile } from '@/lib/types';
@@ -234,27 +235,22 @@ export default function WeightPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              Back
-            </Link>
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-              Body Weight
-            </h1>
-            <div className="w-16 sm:w-20" /> {/* Spacer for centering */}
-          </div>
-        </div>
-      </div>
+      <NavBar />
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6">
+        <div>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Exercises
+          </Link>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+            Body Weight
+          </h1>
+        </div>
         {/* Stats Cards */}
         {(stats || profile?.goal_weight) && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

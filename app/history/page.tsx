@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ChevronDown, ChevronRight, Pencil, Check, X, Trash2 } from 'lucide-react';
+import NavBar from '../components/NavBar';
 import type { WorkoutSet } from '@/lib/types';
 
 interface SetWithExercise extends WorkoutSet {
@@ -425,27 +426,20 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              Back to Exercises
-            </Link>
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-              Workout History
-            </h1>
-            <div className="w-24 sm:w-32" /> {/* Spacer for centering */}
-          </div>
-        </div>
-      </div>
+      <NavBar />
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Exercises
+        </Link>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
+          Workout History
+        </h1>
         {groupedByDay.length === 0 ? (
           <div className="text-center text-gray-500 dark:text-gray-400 py-12">
             No workout history yet. Start logging your sets!

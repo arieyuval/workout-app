@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
-import { Plus, History, Scale } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import SearchBar from './components/SearchBar';
 import MuscleTabs from './components/MuscleTabs';
 import ExerciseCard from './components/ExerciseCard';
 import CardioExerciseCard from './components/CardioExerciseCard';
 import AddExerciseModal from './components/AddExerciseModal';
-import UserMenu from './components/UserMenu';
+import NavBar from './components/NavBar';
 import type { Exercise, WorkoutSet, MuscleGroup } from '@/lib/types';
 
 export default function Home() {
@@ -212,37 +211,9 @@ export default function Home() {
 
   return (
     <>
+      <NavBar />
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8 px-3 sm:px-4">
         <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <header className="mb-6 sm:mb-8">
-          <div className="flex justify-between items-start mb-2">
-            <div className="flex flex-row gap-2">
-              <Link
-                href="/history"
-                className="flex items-center gap-1.5 px-2 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
-              >
-                <History className="w-4 h-4" />
-                <span className="text-sm">History</span>
-              </Link>
-              <Link
-                href="/weight"
-                className="flex items-center gap-1.5 px-2 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
-              >
-                <Scale className="w-4 h-4" />
-                <span className="text-sm">Body Weight</span>
-              </Link>
-            </div>
-            <UserMenu />
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-900 dark:text-white mb-2">
-            Plates
-          </h1>
-          <p className="text-center text-sm sm:text-base text-gray-600 dark:text-gray-400">
-            Track your lifts and monitor your progress
-          </p>
-        </header>
-
         {/* Search Bar */}
         <SearchBar onSearchChange={handleSearchChange} />
 
