@@ -236,7 +236,7 @@ export default function Home() {
             <UserMenu />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-900 dark:text-white mb-2">
-            Workout Tracker
+            Plates
           </h1>
           <p className="text-center text-sm sm:text-base text-gray-600 dark:text-gray-400">
             Track your lifts and monitor your progress
