@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Workout App",
+  title: "Plates",
   description: "Track and manage your workouts",
 };
 
