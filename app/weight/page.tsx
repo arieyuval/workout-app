@@ -68,9 +68,13 @@ export default function WeightPage() {
       });
 
       if (response.ok) {
+        const newLog = await response.json();
+        // Add new log to the beginning (logs are sorted desc by date)
+        setLogs((prev) => [newLog, ...prev]);
+        // Update profile's current_weight
+        setProfile((prev) => prev ? { ...prev, current_weight: newLog.weight } : prev);
         setNewWeight('');
         setNewNotes('');
-        fetchData();
       }
     } catch (error) {
       console.error('Error adding weight:', error);
@@ -88,7 +92,8 @@ export default function WeightPage() {
       });
 
       if (response.ok) {
-        fetchData();
+        // Remove the log from state
+        setLogs((prev) => prev.filter((log) => log.id !== id));
       }
     } catch (error) {
       console.error('Error deleting log:', error);
@@ -122,10 +127,12 @@ export default function WeightPage() {
       });
 
       if (response.ok) {
+        const updatedLog = await response.json();
+        // Update the log in state
+        setLogs((prev) => prev.map((log) => log.id === id ? updatedLog : log));
         setEditingLogId(null);
         setEditWeight('');
         setEditNotes('');
-        fetchData();
       }
     } catch (error) {
       console.error('Error updating log:', error);
@@ -135,19 +142,21 @@ export default function WeightPage() {
   };
 
   const handleUpdateGoal = async () => {
+    const newGoalWeight = goalWeight ? parseFloat(goalWeight) : null;
     try {
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          goal_weight: goalWeight ? parseFloat(goalWeight) : null,
+          goal_weight: newGoalWeight,
           current_weight: profile?.current_weight,
         }),
       });
 
       if (response.ok) {
+        // Update profile state directly
+        setProfile((prev) => prev ? { ...prev, goal_weight: newGoalWeight } : prev);
         setIsEditingGoal(false);
-        fetchData();
       }
     } catch (error) {
       console.error('Error updating goal:', error);

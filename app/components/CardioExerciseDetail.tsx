@@ -7,6 +7,7 @@ import CardioSetLogForm from './CardioSetLogForm';
 import CardioHistoryTable from './CardioHistoryTable';
 import CardioPRList from './CardioPRList';
 import CardioPaceChart from './CardioPaceChart';
+import { useWorkoutData } from '../context/WorkoutDataContext';
 
 interface CardioExerciseDetailProps {
   exercise: Exercise;
@@ -19,6 +20,7 @@ export default function CardioExerciseDetail({
   initialSets,
   lastSet,
 }: CardioExerciseDetailProps) {
+  const { refreshExerciseSets } = useWorkoutData();
   const [sets, setSets] = useState<WorkoutSet[]>(initialSets);
 
   const handleSetLogged = async () => {
@@ -27,6 +29,9 @@ export default function CardioExerciseDetail({
       const setsResponse = await fetch(`/api/sets?exercise_id=${exercise.id}`);
       const newSets = await setsResponse.json();
       setSets(newSets);
+
+      // Also update the global cache so main page shows updated data
+      await refreshExerciseSets(exercise.id);
     } catch (error) {
       console.error('Error refreshing data:', error);
     }

@@ -8,11 +8,22 @@ import ExerciseCard from './components/ExerciseCard';
 import CardioExerciseCard from './components/CardioExerciseCard';
 import AddExerciseModal from './components/AddExerciseModal';
 import NavBar from './components/NavBar';
-import type { Exercise, WorkoutSet, MuscleGroup } from '@/lib/types';
+import { useWorkoutData } from './context/WorkoutDataContext';
+import type { MuscleGroup } from '@/lib/types';
 
 export default function Home() {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [sets, setSets] = useState<Record<string, WorkoutSet[]>>({});
+  const {
+    exercises,
+    sets,
+    loading,
+    fetchAllData,
+    refreshExerciseSets,
+    getTopSetLastSession,
+    getLastSet,
+    getCurrentMax,
+    getBestDistance,
+  } = useWorkoutData();
+
   const [activeTab, setActiveTab] = useState<MuscleGroup>(() => {
     // Restore tab from sessionStorage on initial load
     if (typeof window !== 'undefined') {
@@ -24,7 +35,6 @@ export default function Home() {
     return 'All';
   });
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Persist active tab to sessionStorage
@@ -32,48 +42,19 @@ export default function Home() {
     sessionStorage.setItem('activeExerciseTab', activeTab);
   }, [activeTab]);
 
-  // Fetch exercises data
-  const fetchExercises = async () => {
-    try {
-      const response = await fetch('/api/exercises');
-      const data = await response.json();
-      setExercises(data);
-
-      // Fetch sets for all exercises in parallel
-      const setsPromises = data.map(async (exercise: Exercise) => {
-        const response = await fetch(`/api/sets?exercise_id=${exercise.id}`);
-        const exerciseSets = await response.json();
-        return { id: exercise.id, sets: exerciseSets };
-      });
-
-      const setsResults = await Promise.all(setsPromises);
-
-      // Convert array to Record
-      const setsData: Record<string, WorkoutSet[]> = {};
-      for (const result of setsResults) {
-        setsData[result.id] = result.sets;
-      }
-      setSets(setsData);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Initialize user profile (for new signups with weight data) and fetch exercises on mount
+  // Initialize user profile and fetch data on mount (uses cache if fresh)
   useEffect(() => {
     // Try to init profile from signup metadata (silent, fire-and-forget)
     fetch('/api/profile/init', { method: 'POST' }).catch(() => {});
 
-    fetchExercises();
-  }, []);
+    fetchAllData();
+  }, [fetchAllData]);
 
-  // Refresh exercises when page becomes visible (e.g., navigating back from detail page)
+  // Smart visibility change - only refetch if data is stale (handled by context)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchExercises();
+        fetchAllData(); // Context checks staleness internally
       }
     };
 
@@ -81,7 +62,7 @@ export default function Home() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [fetchAllData]);
 
   // Filter and sort exercises based on active tab, search query, and set count
   const filteredExercises = useMemo(() => {
@@ -102,76 +83,9 @@ export default function Home() {
       });
   }, [exercises, activeTab, searchQuery, sets]);
 
-  // Helper to get the top (heaviest) set from the last session (excluding today)
-  const getTopSetLastSession = (exerciseId: string): WorkoutSet | null => {
-    const exerciseSets = sets[exerciseId] || [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Filter to sets before today
-    const previousSets = exerciseSets.filter((set) => {
-      const setDate = new Date(set.date);
-      setDate.setHours(0, 0, 0, 0);
-      return setDate < today;
-    });
-
-    if (previousSets.length === 0) return null;
-
-    // Find the most recent date (last session)
-    const lastSessionDate = new Date(previousSets[0].date);
-    lastSessionDate.setHours(0, 0, 0, 0);
-
-    // Get all sets from that day
-    const lastSessionSets = previousSets.filter((set) => {
-      const setDate = new Date(set.date);
-      setDate.setHours(0, 0, 0, 0);
-      return setDate.getTime() === lastSessionDate.getTime();
-    });
-
-    // Find the set with the highest weight
-    return lastSessionSets.reduce((max, set) =>
-      (set.weight ?? 0) > (max.weight ?? 0) ? set : max
-    , lastSessionSets[0]);
-  };
-
-  // Helper to get the most recent set logged (including today)
-  const getLastSet = (exerciseId: string): WorkoutSet | null => {
-    const exerciseSets = sets[exerciseId] || [];
-    return exerciseSets.length > 0 ? exerciseSets[0] : null;
-  };
-
-  // Helper to get current max for default PR reps (strength exercises)
-  const getCurrentMax = (exerciseId: string, defaultPrReps: number): number | null => {
-    const exerciseSets = sets[exerciseId] || [];
-    const validSets = exerciseSets.filter((set) => set.reps !== undefined && set.reps >= defaultPrReps);
-
-    if (validSets.length === 0) return null;
-
-    return Math.max(...validSets.map((set) => set.weight!));
-  };
-
-  // Helper to get best distance for cardio exercises
-  const getBestDistance = (exerciseId: string): number | null => {
-    const exerciseSets = sets[exerciseId] || [];
-    const validSets = exerciseSets.filter((set) => set.distance !== undefined && set.distance > 0);
-
-    if (validSets.length === 0) return null;
-
-    return Math.max(...validSets.map((set) => set.distance!));
-  };
-
   // Refresh sets for a specific exercise after logging
   const handleSetLogged = async (exerciseId: string) => {
-    try {
-      const setsResponse = await fetch(`/api/sets?exercise_id=${exerciseId}`);
-      const exerciseSets = await setsResponse.json();
-      setSets((prev) => ({
-        ...prev,
-        [exerciseId]: exerciseSets,
-      }));
-    } catch (error) {
-      console.error('Error refreshing sets:', error);
-    }
+    await refreshExerciseSets(exerciseId);
   };
 
   // Handle search - automatically switch to "All" tab when searching
@@ -180,6 +94,11 @@ export default function Home() {
     if (query.trim() !== '') {
       setActiveTab('All');
     }
+  };
+
+  // Handle when a new exercise is added
+  const handleExerciseAdded = () => {
+    fetchAllData(true); // Force refresh to get the new exercise
   };
 
   if (loading) {
@@ -269,7 +188,7 @@ export default function Home() {
       <AddExerciseModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onExerciseAdded={fetchExercises}
+        onExerciseAdded={handleExerciseAdded}
       />
     </>
   );

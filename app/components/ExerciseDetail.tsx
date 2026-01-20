@@ -7,6 +7,7 @@ import SetLogForm from './SetLogForm';
 import HistoryTable from './HistoryTable';
 import PRList from './PRList';
 import ProgressChart from './ProgressChart';
+import { useWorkoutData } from '../context/WorkoutDataContext';
 
 // Format weight display for body weight vs regular exercises
 const formatWeight = (weight: number, usesBodyWeight: boolean): string => {
@@ -29,6 +30,7 @@ export default function ExerciseDetail({
   initialPRs,
   lastSet,
 }: ExerciseDetailProps) {
+  const { refreshExerciseSets } = useWorkoutData();
   const [sets, setSets] = useState<WorkoutSet[]>(initialSets);
   const [prs, setPRs] = useState<PersonalRecord[]>(initialPRs);
   const [selectedRepMax, setSelectedRepMax] = useState<number | ''>(exercise.default_pr_reps);
@@ -58,6 +60,9 @@ export default function ExerciseDetail({
       const setsResponse = await fetch(`/api/sets?exercise_id=${exercise.id}`);
       const newSets = await setsResponse.json();
       setSets(newSets);
+
+      // Also update the global cache so main page shows updated data
+      await refreshExerciseSets(exercise.id);
 
       // Recalculate PRs
       const repRanges = [1, 3, 5, 8, 10];
