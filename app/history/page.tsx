@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, ChevronDown, ChevronRight, Pencil, Check, X, Trash2 } from 'lucide-react';
 import NavBar from '../components/NavBar';
 import type { WorkoutSet } from '@/lib/types';
+import { useWorkoutData } from '../context/WorkoutDataContext';
 
 interface SetWithExercise extends WorkoutSet {
   exercise_name?: string;
@@ -74,8 +75,7 @@ const formatTime = (date: Date, timezone: string) => {
 };
 
 export default function HistoryPage() {
-  const [sets, setSets] = useState<SetWithExercise[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { exercises, sets: contextSets, loading, fetchAllData } = useWorkoutData();
   const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editWeight, setEditWeight] = useState<number>(0);
@@ -86,23 +86,27 @@ export default function HistoryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const timezone = getUserTimezone();
 
-  useEffect(() => {
-    async function fetchSets() {
-      try {
-        const response = await fetch('/api/sets/all');
-        if (response.ok) {
-          const data = await response.json();
-          setSets(data);
-        }
-      } catch (error) {
-        console.error('Error fetching sets:', error);
-      } finally {
-        setLoading(false);
+  // Flatten sets from context and merge with exercise info
+  const sets = useMemo(() => {
+    if (!exercises || !contextSets) return [];
+    const allSets: SetWithExercise[] = [];
+    
+    exercises.forEach(exercise => {
+      const exerciseSets = contextSets[exercise.id];
+      if (exerciseSets) {
+        exerciseSets.forEach(set => {
+          allSets.push({
+            ...set,
+            exercise_name: exercise.name,
+            muscle_group: exercise.muscle_group,
+            exercise_type: exercise.exercise_type,
+            uses_body_weight: exercise.uses_body_weight
+          });
+        });
       }
-    }
-
-    fetchSets();
-  }, []);
+    });
+    return allSets;
+  }, [exercises, contextSets]);
 
   // Group sets by day, then by exercise
   const groupedByDay = useMemo(() => {
@@ -191,18 +195,6 @@ export default function HistoryPage() {
     return expandedExercises.has(`${dateKey}-${exerciseId}`);
   };
 
-  const fetchSets = async () => {
-    try {
-      const response = await fetch('/api/sets/all');
-      if (response.ok) {
-        const data = await response.json();
-        setSets(data);
-      }
-    } catch (error) {
-      console.error('Error fetching sets:', error);
-    }
-  };
-
   const startEditing = (set: SetWithExercise, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingSetId(set.id);
@@ -238,7 +230,7 @@ export default function HistoryPage() {
       });
 
       if (response.ok) {
-        fetchSets();
+        fetchAllData();
       }
     } catch (error) {
       console.error('Error updating set:', error);
@@ -258,7 +250,7 @@ export default function HistoryPage() {
       });
 
       if (response.ok) {
-        fetchSets();
+        fetchAllData();
       }
     } catch (error) {
       console.error('Error deleting set:', error);

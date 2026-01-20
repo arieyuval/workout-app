@@ -69,9 +69,7 @@ export default function WeightPage() {
 
       if (response.ok) {
         const newLog = await response.json();
-        // Add new log to the beginning (logs are sorted desc by date)
         setLogs((prev) => [newLog, ...prev]);
-        // Update profile's current_weight
         setProfile((prev) => prev ? { ...prev, current_weight: newLog.weight } : prev);
         setNewWeight('');
         setNewNotes('');
@@ -85,14 +83,13 @@ export default function WeightPage() {
 
   const handleDeleteLog = async (id: string) => {
     if (!confirm('Are you sure you want to delete this weigh-in?')) return;
-
+    
     try {
       const response = await fetch(`/api/weight-logs/${id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        // Remove the log from state
         setLogs((prev) => prev.filter((log) => log.id !== id));
       }
     } catch (error) {
@@ -100,7 +97,7 @@ export default function WeightPage() {
     }
   };
 
-  const startEditingLog = (log: BodyWeightLog) => {
+  const startEditingLog = (log: any) => {
     setEditingLogId(log.id);
     setEditWeight(log.weight.toString());
     setEditNotes(log.notes || '');
@@ -128,7 +125,6 @@ export default function WeightPage() {
 
       if (response.ok) {
         const updatedLog = await response.json();
-        // Update the log in state
         setLogs((prev) => prev.map((log) => log.id === id ? updatedLog : log));
         setEditingLogId(null);
         setEditWeight('');
@@ -154,7 +150,6 @@ export default function WeightPage() {
       });
 
       if (response.ok) {
-        // Update profile state directly
         setProfile((prev) => prev ? { ...prev, goal_weight: newGoalWeight ?? undefined } : prev);
         setIsEditingGoal(false);
       }
