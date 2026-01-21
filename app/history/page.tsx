@@ -565,9 +565,13 @@ export default function HistoryPage() {
 
                           {/* Exercise Name */}
                           <div className="flex-1 min-w-0 mr-2">
-                            <div className="font-medium text-gray-900 dark:text-white truncate">
+                            <Link
+                              href={`/exercise/${exercise.exerciseId}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="font-medium text-gray-900 dark:text-white truncate hover:text-blue-600 dark:hover:text-blue-400 hover:underline block"
+                            >
                               {exercise.exerciseName}
-                            </div>
+                            </Link>
                             {hasMoreSets && (
                               <div className="text-xs text-gray-500 dark:text-gray-400">
                                 {exercise.otherSets.length + 1} sets
