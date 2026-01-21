@@ -149,8 +149,8 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
               {exercise.muscle_group}
             </span>
             {(exercise.pinned_note || lastSessionNotes) && (
-              <span className={`text-[10px] sm:text-xs truncate ${exercise.pinned_note ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
-                — {exercise.pinned_note || lastSessionNotes}
+              <span className={`text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded ${exercise.pinned_note ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 font-medium' : `${prColors.bg} ${prColors.text}`}`}>
+                {exercise.pinned_note || lastSessionNotes}
               </span>
             )}
           </div>

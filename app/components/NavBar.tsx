@@ -17,7 +17,7 @@ export default function NavBar() {
               className="flex items-center gap-1.5 px-2 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
               title="History"
             >
-              <History className="w-4 h-4" />
+              <History className="w-5 h-5 sm:w-4 sm:h-4" />
               <span className="text-sm hidden sm:inline">History</span>
             </Link>
             <Link
@@ -25,7 +25,7 @@ export default function NavBar() {
               className="flex items-center gap-1.5 px-2 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
               title="Body Weight"
             >
-              <Scale className="w-4 h-4" />
+              <Scale className="w-5 h-5 sm:w-4 sm:h-4" />
               <span className="text-sm hidden sm:inline">Body Weight</span>
             </Link>
           </div>

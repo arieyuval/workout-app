@@ -116,8 +116,8 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, la
               {exercise.muscle_group}
             </span>
             {(exercise.pinned_note || lastSessionNotes) && (
-              <span className={`text-[10px] sm:text-xs truncate ${exercise.pinned_note ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
-                — {exercise.pinned_note || lastSessionNotes}
+              <span className={`text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded ${exercise.pinned_note ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 font-medium' : 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'}`}>
+                {exercise.pinned_note || lastSessionNotes}
               </span>
             )}
           </div>

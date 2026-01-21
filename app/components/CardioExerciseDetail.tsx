@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { Exercise, WorkoutSet } from '@/lib/types';
 import { format } from 'date-fns';
-import { Pin, X, Check, Pencil } from 'lucide-react';
+import { Pin, X, Check, Pencil, Trash2 } from 'lucide-react';
 import CardioSetLogForm from './CardioSetLogForm';
 import CardioHistoryTable from './CardioHistoryTable';
 import CardioPRList from './CardioPRList';
@@ -167,7 +167,7 @@ export default function CardioExerciseDetail({
                   className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md disabled:opacity-50"
                   title="Delete note"
                 >
-                  <X className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               )}
             </div>
