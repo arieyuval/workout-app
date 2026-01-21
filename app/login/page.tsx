@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createBrowserSupabaseClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [name, setName] = useState('');
@@ -14,7 +15,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
   const router = useRouter();
   const supabase = createBrowserSupabaseClient();
 
@@ -65,19 +65,61 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
-            Plates
-          </h1>
-          <h2 className="mt-6 text-center text-xl text-gray-600 dark:text-gray-400">
-            {isSignUp ? 'Create your account' : 'Sign in to your account'}
-          </h2>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-8">
+      <div className="flex flex-col items-center max-w-md w-full">
+        {/* Tagline at top */}
+        <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 text-center">
+          The easiest way to track your lifts and achieve prodgressive overload
+        </p>
+
+        {/* Logo with curved text around it */}
+        <div className="relative w-64 h-64 sm:w-72 sm:h-72 mb-10">
+          {/* Curved text */}
+          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 200">
+            <defs>
+              <path
+                id="curveTop"
+                d="M 20,100 A 80,80 0 0,1 180,100"
+                fill="none"
+              />
+              <path
+                id="curveBottom"
+                d="M 20,100 A 80,80 0 0,0 180,100"
+                fill="none"
+              />
+            </defs>
+            <text className="fill-gray-900 dark:fill-white" style={{ fontSize: '24px', fontWeight: 'bold' }}>
+              <textPath href="#curveTop" startOffset="50%" textAnchor="middle">
+                Plates
+              </textPath>
+            </text>
+            <text className="fill-gray-900 dark:fill-white" style={{ fontSize: '14px', fontWeight: 'bold' }}>
+              <textPath href="#curveBottom" startOffset="50%" textAnchor="middle">
+                The lifter&apos;s database
+              </textPath>
+            </text>
+          </svg>
+
+          {/* Centered logo */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Image
+              src="/plates-logo.png"
+              alt="Plates Logo"
+              width={160}
+              height={160}
+              className="w-36 h-36 sm:w-40 sm:h-40"
+              priority
+            />
+          </div>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
+        {/* Sign in section */}
+        <div className="w-full">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
+            {isSignUp ? 'Sign up' : 'Sign in'}
+          </h2>
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
             {isSignUp && (
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -176,9 +218,8 @@ export default function LoginPage() {
                 </div>
               </div>
             )}
-          </div>
 
-          {error && (
+            {error && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
@@ -197,25 +238,26 @@ export default function LoginPage() {
           >
             {loading ? 'Loading...' : isSignUp ? 'Sign up' : 'Sign in'}
           </button>
-        </form>
+          </form>
 
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError(null);
-              setMessage(null);
-              setName('');
-              setCurrentWeight('');
-              setGoalWeight('');
-            }}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500"
-          >
-            {isSignUp
-              ? 'Already have an account? Sign in'
-              : "Don't have an account? Sign up"}
-          </button>
+          <div className="text-center mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError(null);
+                setMessage(null);
+                setName('');
+                setCurrentWeight('');
+                setGoalWeight('');
+              }}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500"
+            >
+              {isSignUp
+                ? 'Already have an account? Sign in'
+                : "Don't have an account? Sign up"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

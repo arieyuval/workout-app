@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Trash2, Target, Pencil, Check, X } from 'lucide-react';
 import NavBar from '../components/NavBar';
@@ -8,25 +8,42 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { format } from 'date-fns';
 import type { BodyWeightLog, UserProfile } from '@/lib/types';
 
+// Cache for weight data to prevent refetching on every navigation
+const STALE_THRESHOLD_MS = 30 * 1000; // 30 seconds
+let cachedLogs: BodyWeightLog[] | null = null;
+let cachedProfile: UserProfile | null = null;
+let lastFetchedAt: number | null = null;
+
 export default function WeightPage() {
-  const [logs, setLogs] = useState<BodyWeightLog[]>([]);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [logs, setLogs] = useState<BodyWeightLog[]>(cachedLogs || []);
+  const [profile, setProfile] = useState<UserProfile | null>(cachedProfile);
+  const [loading, setLoading] = useState(!cachedLogs);
   const [newWeight, setNewWeight] = useState('');
   const [newNotes, setNewNotes] = useState('');
-  const [goalWeight, setGoalWeight] = useState('');
+  const [goalWeight, setGoalWeight] = useState(cachedProfile?.goal_weight?.toString() || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [editWeight, setEditWeight] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const fetchInProgress = useRef(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const fetchData = useCallback(async (force = false) => {
+    // Skip if data is fresh and not forced
+    if (!force && lastFetchedAt && Date.now() - lastFetchedAt < STALE_THRESHOLD_MS) {
+      setLoading(false);
+      return;
+    }
 
-  const fetchData = async () => {
-    setLoading(true);
+    // Prevent duplicate requests
+    if (fetchInProgress.current) return;
+    fetchInProgress.current = true;
+
+    // Only show loading spinner if we have no cached data
+    if (!cachedLogs) {
+      setLoading(true);
+    }
+
     try {
       const [logsRes, profileRes] = await Promise.all([
         fetch('/api/weight-logs'),
@@ -35,22 +52,31 @@ export default function WeightPage() {
 
       if (logsRes.ok) {
         const logsData = await logsRes.json();
+        cachedLogs = logsData;
         setLogs(logsData);
       }
 
       if (profileRes.ok) {
         const profileData = await profileRes.json();
+        cachedProfile = profileData;
         setProfile(profileData);
         if (profileData.goal_weight) {
           setGoalWeight(profileData.goal_weight.toString());
         }
       }
+
+      lastFetchedAt = Date.now();
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+      fetchInProgress.current = false;
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleAddWeight = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,8 +95,12 @@ export default function WeightPage() {
 
       if (response.ok) {
         const newLog = await response.json();
-        setLogs((prev) => [newLog, ...prev]);
-        setProfile((prev) => prev ? { ...prev, current_weight: newLog.weight } : prev);
+        const updatedLogs = [newLog, ...logs];
+        cachedLogs = updatedLogs;
+        setLogs(updatedLogs);
+        const updatedProfile = profile ? { ...profile, current_weight: newLog.weight } : null;
+        cachedProfile = updatedProfile;
+        setProfile(updatedProfile);
         setNewWeight('');
         setNewNotes('');
       }
@@ -90,7 +120,9 @@ export default function WeightPage() {
       });
 
       if (response.ok) {
-        setLogs((prev) => prev.filter((log) => log.id !== id));
+        const updatedLogs = logs.filter((log) => log.id !== id);
+        cachedLogs = updatedLogs;
+        setLogs(updatedLogs);
       }
     } catch (error) {
       console.error('Error deleting log:', error);
@@ -125,7 +157,9 @@ export default function WeightPage() {
 
       if (response.ok) {
         const updatedLog = await response.json();
-        setLogs((prev) => prev.map((log) => log.id === id ? updatedLog : log));
+        const updatedLogs = logs.map((log) => log.id === id ? updatedLog : log);
+        cachedLogs = updatedLogs;
+        setLogs(updatedLogs);
         setEditingLogId(null);
         setEditWeight('');
         setEditNotes('');
@@ -150,7 +184,9 @@ export default function WeightPage() {
       });
 
       if (response.ok) {
-        setProfile((prev) => prev ? { ...prev, goal_weight: newGoalWeight ?? undefined } : prev);
+        const updatedProfile = profile ? { ...profile, goal_weight: newGoalWeight ?? undefined } : null;
+        cachedProfile = updatedProfile;
+        setProfile(updatedProfile);
         setIsEditingGoal(false);
       }
     } catch (error) {
