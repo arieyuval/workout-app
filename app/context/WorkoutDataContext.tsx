@@ -21,6 +21,7 @@ interface WorkoutDataContextType {
   getTopSetLastSession: (exerciseId: string) => WorkoutSet | null;
   getLastSet: (exerciseId: string) => WorkoutSet | null;
   getLastSetExcludingToday: (exerciseId: string) => WorkoutSet | null;
+  getLastSessionNotes: (exerciseId: string) => string | null;
   getCurrentMax: (exerciseId: string, minReps: number) => number | null;
   getBestDistance: (exerciseId: string) => number | null;
   getPersonalRecords: (exerciseId: string) => PersonalRecord[];
@@ -188,6 +189,37 @@ export function WorkoutDataProvider({ children }: { children: ReactNode }) {
     return previousSets.length > 0 ? previousSets[0] : null;
   }, [sets]);
 
+  // Helper: Get notes from the last session (any set with notes from last session date)
+  const getLastSessionNotes = useCallback((exerciseId: string): string | null => {
+    const exerciseSets = sets[exerciseId] || [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Filter to sets before today
+    const previousSets = exerciseSets.filter((set) => {
+      const setDate = new Date(set.date);
+      setDate.setHours(0, 0, 0, 0);
+      return setDate < today;
+    });
+
+    if (previousSets.length === 0) return null;
+
+    // Find the most recent date (last session)
+    const lastSessionDate = new Date(previousSets[0].date);
+    lastSessionDate.setHours(0, 0, 0, 0);
+
+    // Get all sets from that day and find one with notes
+    const lastSessionSets = previousSets.filter((set) => {
+      const setDate = new Date(set.date);
+      setDate.setHours(0, 0, 0, 0);
+      return setDate.getTime() === lastSessionDate.getTime();
+    });
+
+    // Find the first set with notes from last session
+    const setWithNotes = lastSessionSets.find((set) => set.notes && set.notes.trim() !== '');
+    return setWithNotes?.notes || null;
+  }, [sets]);
+
   // Helper: Calculate personal records for an exercise
   const getPersonalRecords = useCallback((exerciseId: string): PersonalRecord[] => {
     const exerciseSets = sets[exerciseId] || [];
@@ -229,6 +261,7 @@ export function WorkoutDataProvider({ children }: { children: ReactNode }) {
         getTopSetLastSession,
         getLastSet,
         getLastSetExcludingToday,
+        getLastSessionNotes,
         getCurrentMax,
         getBestDistance,
         getPersonalRecords,

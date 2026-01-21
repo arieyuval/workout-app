@@ -33,6 +33,7 @@ interface ExerciseGroup {
 interface DayGroup {
   dateKey: string;
   displayDate: string;
+  workoutLabel: string;
   exercises: ExerciseGroup[];
 }
 
@@ -53,15 +54,87 @@ const getDateKey = (date: Date, timezone: string) => {
   return `${year}-${month}-${day}`;
 };
 
-// Format date for display
+// Format date for display (e.g., "Tue, 1/20")
 const formatDisplayDate = (date: Date, timezone: string) => {
-  return date.toLocaleString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: timezone,
+  const weekday = date.toLocaleString('en-US', { weekday: 'short', timeZone: timezone });
+  const month = date.toLocaleString('en-US', { month: 'numeric', timeZone: timezone });
+  const day = date.toLocaleString('en-US', { day: 'numeric', timeZone: timezone });
+  return `${weekday}, ${month}/${day}`;
+};
+
+// Normalize muscle group to parent category (Biceps/Triceps -> Arms)
+const normalizeMuscleGroup = (muscleGroup: string): string => {
+  if (muscleGroup === 'Biceps' || muscleGroup === 'Triceps') {
+    return 'Arms';
+  }
+  return muscleGroup;
+};
+
+// Get workout label based on muscle groups in the workout
+const getWorkoutLabel = (exercises: ExerciseGroup[]): string => {
+  // Get unique normalized muscle groups (excluding Cardio for labeling purposes)
+  const muscleGroups = new Set<string>();
+  const rawMuscleGroups = new Set<string>();
+
+  exercises.forEach(ex => {
+    const rawGroup = ex.topSet.muscle_group || '';
+    const normalizedGroup = normalizeMuscleGroup(rawGroup);
+    if (normalizedGroup && normalizedGroup !== 'Cardio') {
+      muscleGroups.add(normalizedGroup);
+      rawMuscleGroups.add(rawGroup);
+    }
   });
+
+  const groups = Array.from(muscleGroups);
+
+  // If only cardio exercises, return empty
+  if (groups.length === 0) {
+    return '';
+  }
+
+  // Single muscle group
+  if (groups.length === 1) {
+    return groups[0];
+  }
+
+  // Check for Push: Chest, Triceps, Shoulders only
+  const pushGroups = new Set(['Chest', 'Shoulders', 'Arms']);
+  const hasTriceps = rawMuscleGroups.has('Triceps');
+  const hasBiceps = rawMuscleGroups.has('Biceps');
+  const isPush = groups.every(g => pushGroups.has(g)) &&
+                 groups.includes('Chest') &&
+                 (!rawMuscleGroups.has('Arms') || (hasTriceps && !hasBiceps));
+  if (isPush) {
+    return 'Push';
+  }
+
+  // Check for Pull: Back, Biceps only (allowed 1 shoulder exercise)
+  const hasBack = groups.includes('Back');
+  const hasArms = groups.includes('Arms');
+  const hasShoulders = groups.includes('Shoulders');
+  const shoulderCount = exercises.filter(ex => normalizeMuscleGroup(ex.topSet.muscle_group || '') === 'Shoulders').length;
+
+  if (hasBack && hasArms && hasBiceps && !hasTriceps) {
+    const otherGroups = groups.filter(g => g !== 'Back' && g !== 'Arms' && g !== 'Shoulders');
+    if (otherGroups.length === 0 && (!hasShoulders || shoulderCount <= 1)) {
+      return 'Pull';
+    }
+  }
+
+  // Check for Sharms: Arms and Shoulders only
+  if (groups.length === 2 && groups.includes('Arms') && groups.includes('Shoulders')) {
+    return 'Sharms';
+  }
+
+  // Two muscle groups
+  if (groups.length === 2) {
+    return `${groups[0]} & ${groups[1]}`;
+  }
+
+  // More than 2 muscle groups - list all muscle groups
+  // Use raw muscle groups (Biceps/Triceps instead of Arms) for more specificity
+  const displayGroups = Array.from(rawMuscleGroups);
+  return displayGroups.join(', ');
 };
 
 // Format time for display
@@ -168,9 +241,13 @@ export default function HistoryPage() {
           ? formatDisplayDate(new Date(firstSet.date), timezone)
           : dateKey;
 
+        // Get workout label based on muscle groups
+        const workoutLabel = getWorkoutLabel(exercises);
+
         return {
           dateKey,
           displayDate,
+          workoutLabel,
           exercises,
         };
       });
@@ -448,6 +525,9 @@ export default function HistoryPage() {
                   <div className="flex items-center justify-between">
                     <h2 className="font-semibold text-gray-900 dark:text-white">
                       {dayGroup.displayDate}
+                      {dayGroup.workoutLabel && (
+                        <span>: {dayGroup.workoutLabel}</span>
+                      )}
                     </h2>
                     <span className="text-sm text-gray-500 dark:text-gray-400">
                       {dayGroup.exercises.length} exercise{dayGroup.exercises.length !== 1 ? 's' : ''}

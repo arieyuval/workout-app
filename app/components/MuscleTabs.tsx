@@ -18,6 +18,8 @@ const getMuscleGroupBgColor = (muscleGroup: MuscleGroup): string => {
     Legs: 'bg-green-700',
     Shoulders: 'bg-amber-700',
     Arms: 'bg-purple-600',
+    Biceps: 'bg-violet-600',
+    Triceps: 'bg-fuchsia-600',
     Core: 'bg-yellow-700',
     Cardio: 'bg-teal-600',
   };

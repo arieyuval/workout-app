@@ -20,6 +20,7 @@ export default function Home() {
     refreshExerciseSets,
     getTopSetLastSession,
     getLastSet,
+    getLastSessionNotes,
     getCurrentMax,
     getBestDistance,
   } = useWorkoutData();
@@ -68,7 +69,9 @@ export default function Home() {
   const filteredExercises = useMemo(() => {
     return exercises
       .filter((exercise) => {
-        const matchesTab = activeTab === 'All' || exercise.muscle_group === activeTab;
+        const matchesTab = activeTab === 'All' ||
+          exercise.muscle_group === activeTab ||
+          (activeTab === 'Arms' && (exercise.muscle_group === 'Biceps' || exercise.muscle_group === 'Triceps'));
         const matchesSearch =
           searchQuery === '' ||
           exercise.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -154,6 +157,7 @@ export default function Home() {
                     exercise={exercise}
                     lastSet={getLastSet(exercise.id)}
                     bestDistance={getBestDistance(exercise.id)}
+                    lastSessionNotes={getLastSessionNotes(exercise.id)}
                     onSetLogged={() => handleSetLogged(exercise.id)}
                   />
                 );
@@ -165,6 +169,7 @@ export default function Home() {
                     topSetLastSession={getTopSetLastSession(exercise.id)}
                     lastSet={getLastSet(exercise.id)}
                     currentMax={getCurrentMax(exercise.id, exercise.default_pr_reps)}
+                    lastSessionNotes={getLastSessionNotes(exercise.id)}
                     onSetLogged={() => handleSetLogged(exercise.id)}
                   />
                 );

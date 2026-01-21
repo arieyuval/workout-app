@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getExercise, updateExerciseDefaultPrReps } from '@/lib/data-utils';
+import { getExercise, updateExerciseDefaultPrReps, updateExercisePinnedNote } from '@/lib/data-utils';
 
 export async function GET(
   request: NextRequest,
@@ -40,6 +40,21 @@ export async function PATCH(
       if (!updated) {
         return NextResponse.json(
           { error: 'Failed to update exercise' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json(updated);
+    }
+
+    if (body.pinned_note !== undefined) {
+      // Allow null or empty string to clear the note
+      const noteValue = body.pinned_note === '' ? null : body.pinned_note;
+      const updated = await updateExercisePinnedNote(id, noteValue);
+
+      if (!updated) {
+        return NextResponse.json(
+          { error: 'Failed to update pinned note' },
           { status: 500 }
         );
       }

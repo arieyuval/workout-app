@@ -10,7 +10,7 @@ interface AddExerciseModalProps {
   onExerciseAdded: () => void;
 }
 
-const strengthMuscleGroups: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
+const strengthMuscleGroups: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Biceps', 'Triceps', 'Core'];
 
 // Get text color for muscle group in suggestions
 const getMuscleGroupColor = (muscleGroup: string): string => {
@@ -20,6 +20,8 @@ const getMuscleGroupColor = (muscleGroup: string): string => {
     Legs: 'text-green-600 dark:text-green-400',
     Shoulders: 'text-amber-600 dark:text-amber-400',
     Arms: 'text-purple-600 dark:text-purple-400',
+    Biceps: 'text-violet-600 dark:text-violet-400',
+    Triceps: 'text-fuchsia-600 dark:text-fuchsia-400',
     Core: 'text-yellow-600 dark:text-yellow-400',
     Cardio: 'text-teal-600 dark:text-teal-400',
   };

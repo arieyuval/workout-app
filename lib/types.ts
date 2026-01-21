@@ -1,6 +1,6 @@
 // Core data types for the workout tracker app
 
-export type MuscleGroup = 'All' | 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core' | 'Cardio';
+export type MuscleGroup = 'All' | 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Biceps' | 'Triceps' | 'Core' | 'Cardio';
 export type ExerciseType = 'strength' | 'cardio';
 
 export interface Exercise {
@@ -11,6 +11,7 @@ export interface Exercise {
   default_pr_reps: number; // default rep count for PR display (only for strength exercises)
   is_base: boolean; // true for base exercises shown to all users, false for user-created
   uses_body_weight: boolean; // true for exercises that use body weight (pull-ups, dips, etc.)
+  pinned_note?: string; // optional pinned note that always displays on the card
   created_at?: string;
 }
 

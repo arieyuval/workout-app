@@ -225,3 +225,27 @@ export async function updateExerciseDefaultPrReps(
 
   return data;
 }
+
+/**
+ * Update an exercise's pinned note
+ * @param exerciseId - The ID of the exercise
+ * @param pinnedNote - The new pinned note (or null to clear)
+ */
+export async function updateExercisePinnedNote(
+  exerciseId: string,
+  pinnedNote: string | null
+) {
+  const { data, error } = await supabase
+    .from('exercises')
+    .update({ pinned_note: pinnedNote })
+    .eq('id', exerciseId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating exercise pinned note:', error);
+    return null;
+  }
+
+  return data;
+}

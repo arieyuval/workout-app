@@ -10,6 +10,7 @@ interface ExerciseCardProps {
   topSetLastSession: WorkoutSet | null;
   lastSet: WorkoutSet | null;
   currentMax: number | null;
+  lastSessionNotes: string | null;
   onSetLogged?: () => void;
 }
 
@@ -21,6 +22,8 @@ const getMuscleGroupTextColor = (muscleGroup: string) => {
     Legs: 'text-green-700 dark:text-green-300',
     Shoulders: 'text-amber-700 dark:text-amber-300',
     Arms: 'text-purple-600 dark:text-purple-400',
+    Biceps: 'text-violet-600 dark:text-violet-400',
+    Triceps: 'text-fuchsia-600 dark:text-fuchsia-400',
     Core: 'text-yellow-700 dark:text-yellow-300',
     Cardio: 'text-teal-600 dark:text-teal-400',
   };
@@ -35,6 +38,8 @@ const getMuscleGroupPRColors = (muscleGroup: string) => {
     Legs: { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-300' },
     Shoulders: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-300' },
     Arms: { bg: 'bg-purple-50 dark:bg-purple-900/20', text: 'text-purple-600 dark:text-purple-400' },
+    Biceps: { bg: 'bg-violet-50 dark:bg-violet-900/20', text: 'text-violet-600 dark:text-violet-400' },
+    Triceps: { bg: 'bg-fuchsia-50 dark:bg-fuchsia-900/20', text: 'text-fuchsia-600 dark:text-fuchsia-400' },
     Core: { bg: 'bg-yellow-50 dark:bg-yellow-900/20', text: 'text-yellow-700 dark:text-yellow-300' },
     Cardio: { bg: 'bg-teal-50 dark:bg-teal-900/20', text: 'text-teal-600 dark:text-teal-400' },
   };
@@ -75,7 +80,7 @@ const formatWeight = (weight: number, usesBodyWeight: boolean): string => {
   return weight > 0 ? `BW + ${weight}` : 'BW';
 };
 
-export default function ExerciseCard({ exercise, topSetLastSession, lastSet, currentMax, onSetLogged }: ExerciseCardProps) {
+export default function ExerciseCard({ exercise, topSetLastSession, lastSet, currentMax, lastSessionNotes, onSetLogged }: ExerciseCardProps) {
   const [weight, setWeight] = useState(0);
   const [reps, setReps] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -139,8 +144,15 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
             <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
           </div>
 
-          <div className={`text-xs sm:text-sm font-medium mb-1 ${muscleGroupColor}`}>
-            {exercise.muscle_group}
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`text-xs sm:text-sm font-medium ${muscleGroupColor}`}>
+              {exercise.muscle_group}
+            </span>
+            {(exercise.pinned_note || lastSessionNotes) && (
+              <span className={`text-[10px] sm:text-xs truncate ${exercise.pinned_note ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                — {exercise.pinned_note || lastSessionNotes}
+              </span>
+            )}
           </div>
         </div>
       </Link>

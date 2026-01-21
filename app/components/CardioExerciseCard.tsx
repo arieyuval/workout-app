@@ -9,6 +9,7 @@ interface CardioExerciseCardProps {
   exercise: Exercise;
   lastSet: WorkoutSet | null;
   bestDistance: number | null;
+  lastSessionNotes: string | null;
   onSetLogged?: () => void;
 }
 
@@ -39,7 +40,7 @@ const getLocalDateISO = () => {
   return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
 };
 
-export default function CardioExerciseCard({ exercise, lastSet, bestDistance, onSetLogged }: CardioExerciseCardProps) {
+export default function CardioExerciseCard({ exercise, lastSet, bestDistance, lastSessionNotes, onSetLogged }: CardioExerciseCardProps) {
   const [distance, setDistance] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,8 +111,15 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, on
             <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
           </div>
 
-          <div className="text-xs sm:text-sm font-medium text-teal-600 dark:text-teal-400 mb-1">
-            {exercise.muscle_group}
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs sm:text-sm font-medium text-teal-600 dark:text-teal-400">
+              {exercise.muscle_group}
+            </span>
+            {(exercise.pinned_note || lastSessionNotes) && (
+              <span className={`text-[10px] sm:text-xs truncate ${exercise.pinned_note ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                — {exercise.pinned_note || lastSessionNotes}
+              </span>
+            )}
           </div>
         </div>
       </Link>
