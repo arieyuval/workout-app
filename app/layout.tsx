@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Plates - Workout Tracker",
+  title: "Plates - The Lifters Database",
   description: "Track your workouts, monitor progress, and achieve your fitness goals",
   manifest: "/manifest.json",
   icons: {
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "Plates",
-    title: "Plates - Workout Tracker",
+    title: "Plates - The Lifters Database",
     description: "Track your workouts, monitor progress, and achieve your fitness goals",
     images: [
       {
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Plates - Workout Tracker",
+    title: "Plates - The Lifters Database",
     description: "Track your workouts, monitor progress, and achieve your fitness goals",
     images: ["/icons/icon-512x512.png"],
   },
