@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { Exercise, WorkoutSet } from '@/lib/types';
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChevronRight, Plus, Pin, StickyNote } from 'lucide-react';
 
 interface CardioExerciseCardProps {
   exercise: Exercise;
@@ -116,7 +116,8 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, la
               {exercise.muscle_group}
             </span>
             {(exercise.pinned_note || lastSessionNotes) && (
-              <span className={`text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded ${exercise.pinned_note ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 font-medium' : 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'}`}>
+              <span className={`text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded flex items-center gap-1 ${exercise.pinned_note ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 font-medium' : 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'}`}>
+                {exercise.pinned_note ? <Pin className="w-2.5 h-2.5 flex-shrink-0" /> : <StickyNote className="w-2.5 h-2.5 flex-shrink-0" />}
                 {exercise.pinned_note || lastSessionNotes}
               </span>
             )}
