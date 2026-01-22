@@ -1,5 +1,6 @@
 "use client";
 
+import Link from 'next/link';
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -135,12 +136,11 @@ export default function DeleteDataPage() {
             )}
           </div>
         )}
-
         <div className="mt-6 text-center">
-          <a href="/" className="text-cyan-400 hover:underline text-sm">
-            ← Back to Home
-          </a>
-        </div>
+        <Link href="/" className="text-cyan-400 hover:underline text-sm">
+          ← Back to Home
+        </Link>
+      </div>
       </div>
     </div>
   );
