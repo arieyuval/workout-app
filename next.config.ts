@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 import withPWAInit from "@ducanh2912/next-pwa";
 
+// 1. Logic to detect if we are building for the iOS App
+const isMobileBuild = process.env.IS_CAPACITOR === "true";
+
 const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
@@ -13,7 +16,6 @@ const withPWA = withPWAInit({
     skipWaiting: true,
     clientsClaim: true,
     runtimeCaching: [
-      // Supabase API - Network first with cache fallback
       {
         urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
         handler: "NetworkFirst",
@@ -29,7 +31,6 @@ const withPWA = withPWAInit({
           networkTimeoutSeconds: 10,
         },
       },
-      // Static images - Cache first
       {
         urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
         handler: "CacheFirst",
@@ -41,7 +42,6 @@ const withPWA = withPWAInit({
           },
         },
       },
-      // Fonts - Cache first
       {
         urlPattern: /\.(?:woff|woff2|ttf|otf|eot)$/i,
         handler: "CacheFirst",
@@ -53,7 +53,6 @@ const withPWA = withPWAInit({
           },
         },
       },
-      // CSS and JS - Stale while revalidate
       {
         urlPattern: /\.(?:js|css)$/i,
         handler: "StaleWhileRevalidate",
@@ -65,7 +64,6 @@ const withPWA = withPWAInit({
           },
         },
       },
-      // Pages - Network first
       {
         urlPattern: /^https:\/\/.*$/i,
         handler: "NetworkFirst",
@@ -83,17 +81,22 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  // Required for TWA - ensure trailing slashes are consistent
+  // 2. Switch to 'export' ONLY for the iOS build
+  output: isMobileBuild ? 'export' : undefined,
+
   trailingSlash: false,
 
-  // Optimize images
+  // 3. Disable image optimization ONLY for the iOS build
   images: {
+    unoptimized: isMobileBuild,
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
 
-  // Headers for PWA and TWA
+  // 4. Wrap headers so they only run when NOT building for mobile
   async headers() {
+    if (isMobileBuild) return []; 
+
     return [
       {
         source: "/sw.js",
