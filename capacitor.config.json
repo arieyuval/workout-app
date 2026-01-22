@@ -1,0 +1,6 @@
+{
+  "appId": "com.plates.app",
+  "appName": "Plates",
+  "webDir": "out",
+  "bundledWebRuntime": false
+}
