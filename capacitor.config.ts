@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.yuvalarie.plates',
+  appId: 'com.plates.app',
   appName: 'Plates',
   webDir: 'out',
   bundledWebRuntime: false
