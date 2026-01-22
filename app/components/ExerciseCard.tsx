@@ -90,7 +90,9 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
     e.preventDefault();
     e.stopPropagation(); // Prevent navigation to detail page
 
-    if (weight <= 0 || reps <= 0) return;
+    // For bodyweight exercises, weight can be 0; for regular exercises, weight must be > 0
+    if (!exercise.uses_body_weight && weight <= 0) return;
+    if (reps <= 0) return;
 
     setIsSubmitting(true);
 
@@ -211,29 +213,33 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
           Quick Log
         </div>
         <div className="flex gap-2">
-          <input
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            placeholder={exercise.uses_body_weight ? '+Wt' : 'Wt'}
-            value={weight || ''}
-            onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
-            className="w-20 sm:w-24 px-2 py-2 text-sm sm:text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <span className="flex items-center text-gray-400 text-sm">×</span>
+          {!exercise.uses_body_weight && (
+            <>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                placeholder="Wt"
+                value={weight || ''}
+                onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
+                className="w-20 sm:w-24 px-2 py-2 text-sm sm:text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <span className="flex items-center text-gray-400 text-sm">×</span>
+            </>
+          )}
           <input
             type="number"
             inputMode="numeric"
             placeholder="Reps"
             value={reps || ''}
             onChange={(e) => setReps(parseInt(e.target.value) || 0)}
-            className="w-16 sm:w-20 px-2 py-2 text-sm sm:text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+            className={`${exercise.uses_body_weight ? 'flex-1' : 'w-16 sm:w-20'} px-2 py-2 text-sm sm:text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation`}
             onClick={(e) => e.stopPropagation()}
           />
           <button
             type="submit"
-            disabled={isSubmitting || weight <= 0 || reps <= 0}
+            disabled={isSubmitting || (!exercise.uses_body_weight && weight <= 0) || reps <= 0}
             className={`px-3 sm:px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation flex items-center gap-1 flex-shrink-0 text-white ${
               showSuccess ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
             }`}

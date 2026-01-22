@@ -4,6 +4,7 @@ const path = require('path');
 
 const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
 const inputPath = path.join(__dirname, '../public/plates-logo.png');
+const filledInputPath = path.join(__dirname, '../public/plates-logo-filled.png');
 const outputDir = path.join(__dirname, '../public/icons');
 
 // Dark background color matching your app theme
@@ -28,13 +29,11 @@ async function generateIcons() {
     console.log(`  Generated icon-${size}x${size}.png`);
   }
 
-  // Generate maskable icon for Android adaptive icons
-  // The logo should be ~60-70% of the canvas so it stays in the safe zone
-  // but the background fills the entire icon (no white border)
+  // Generate maskable icon for Android adaptive icons using the filled logo
+  // The logo should be ~65% of the canvas so it stays in the safe zone
   const maskableSize = 512;
-  const logoSize = Math.floor(maskableSize * 0.65); // Logo at 65% size
+  const logoSize = Math.floor(maskableSize * 0.65);
 
-  // First create the background, then composite the logo on top
   await sharp({
     create: {
       width: maskableSize,
@@ -45,10 +44,10 @@ async function generateIcons() {
   })
     .composite([
       {
-        input: await sharp(inputPath)
+        input: await sharp(filledInputPath)
           .resize(logoSize, logoSize, {
             fit: 'contain',
-            background: { r: 0, g: 0, b: 0, alpha: 0 } // transparent
+            background: bgColor
           })
           .toBuffer(),
         gravity: 'center'
@@ -70,10 +69,10 @@ async function generateIcons() {
   })
     .composite([
       {
-        input: await sharp(inputPath)
+        input: await sharp(filledInputPath)
           .resize(Math.floor(192 * 0.65), Math.floor(192 * 0.65), {
             fit: 'contain',
-            background: { r: 0, g: 0, b: 0, alpha: 0 }
+            background: bgColor
           })
           .toBuffer(),
         gravity: 'center'

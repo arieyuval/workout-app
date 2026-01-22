@@ -49,8 +49,14 @@ export default function SetLogForm({ exerciseId, usesBodyWeight = false, onSucce
     e.preventDefault();
     setError(null);
 
-    if (formData.weight <= 0 || formData.reps <= 0) {
-      setError('Weight and reps must be greater than 0');
+    // For bodyweight exercises, weight can be 0 (just bodyweight)
+    // For regular exercises, weight must be > 0
+    if (!usesBodyWeight && formData.weight <= 0) {
+      setError('Weight must be greater than 0');
+      return;
+    }
+    if (formData.reps <= 0) {
+      setError('Reps must be greater than 0');
       return;
     }
 
@@ -96,28 +102,9 @@ export default function SetLogForm({ exerciseId, usesBodyWeight = false, onSucce
         Log New Set
       </h3>
 
-      <div className="flex items-end gap-3 sm:gap-4">
-        <div className="flex-1">
-          <label htmlFor="weight" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
-            {usesBodyWeight ? 'Added Weight (lbs)' : 'Weight (lbs)'}
-          </label>
-          <input
-            id="weight"
-            type="number"
-            step="0.01"
-            min="0"
-            inputMode="decimal"
-            placeholder={usesBodyWeight ? '0 for BW only' : ''}
-            value={formData.weight || ''}
-            onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 0 })}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
-            required
-          />
-        </div>
-
-        <span className="flex items-center text-gray-400 text-lg pb-2.5 sm:pb-2">×</span>
-
-        <div className="flex-1">
+      {usesBodyWeight ? (
+        /* Bodyweight exercises: only show reps input */
+        <div>
           <label htmlFor="reps" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
             Reps
           </label>
@@ -132,7 +119,45 @@ export default function SetLogForm({ exerciseId, usesBodyWeight = false, onSucce
             required
           />
         </div>
-      </div>
+      ) : (
+        /* Regular exercises: show weight × reps */
+        <div className="flex items-end gap-3 sm:gap-4">
+          <div className="flex-1">
+            <label htmlFor="weight" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+              Weight (lbs)
+            </label>
+            <input
+              id="weight"
+              type="number"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              value={formData.weight || ''}
+              onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 0 })}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+              required
+            />
+          </div>
+
+          <span className="flex items-center text-gray-400 text-lg pb-2.5 sm:pb-2">×</span>
+
+          <div className="flex-1">
+            <label htmlFor="reps" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+              Reps
+            </label>
+            <input
+              id="reps"
+              type="number"
+              min="1"
+              inputMode="numeric"
+              value={formData.reps || ''}
+              onChange={(e) => setFormData({ ...formData, reps: parseInt(e.target.value) || 0 })}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+              required
+            />
+          </div>
+        </div>
+      )}
 
       <div>
         <label htmlFor="notes" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">

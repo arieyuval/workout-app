@@ -71,12 +71,14 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
     }
   };
 
-  // Filter suggestions based on input
+  // Filter suggestions based on input (searches both name and muscle group)
   useEffect(() => {
     if (exerciseName.trim().length >= 1) {
+      const searchTerm = exerciseName.toLowerCase().trim();
       const filtered = allExercises
         .filter((ex) =>
-          ex.name.toLowerCase().includes(exerciseName.toLowerCase().trim())
+          ex.name.toLowerCase().includes(searchTerm) ||
+          ex.muscle_group.toLowerCase().includes(searchTerm)
         )
         .slice(0, 6); // Limit to 6 suggestions
       setSuggestions(filtered);

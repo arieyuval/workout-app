@@ -380,7 +380,7 @@ export default function ExerciseDetail({
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
           Progress Over Time
         </h2>
-        <ProgressChart sets={sets} />
+        <ProgressChart sets={sets} usesBodyWeight={exercise.uses_body_weight} />
       </div>
 
       {/* History Table */}

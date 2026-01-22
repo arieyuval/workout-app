@@ -7,11 +7,16 @@ import { format } from 'date-fns';
 
 interface ProgressChartProps {
   sets: WorkoutSet[];
+  usesBodyWeight?: boolean;
 }
 
-export default function ProgressChart({ sets }: ProgressChartProps) {
-  // Get unique rep counts from the data for the dropdown
+export default function ProgressChart({ sets, usesBodyWeight = false }: ProgressChartProps) {
+  // For bodyweight exercises: show reps progression over time (best reps per day)
+  // For regular exercises: show weight progression for a specific rep count
+
+  // Get unique rep counts from the data for the dropdown (only for non-bodyweight exercises)
   const availableReps = useMemo(() => {
+    if (usesBodyWeight) return [];
     const reps = new Set<number>();
     sets.forEach((set) => {
       if (set.reps !== undefined && set.reps > 0) {
@@ -19,16 +24,40 @@ export default function ProgressChart({ sets }: ProgressChartProps) {
       }
     });
     return Array.from(reps).sort((a, b) => a - b);
-  }, [sets]);
+  }, [sets, usesBodyWeight]);
 
   const [selectedReps, setSelectedReps] = useState<number | null>(
     availableReps.length > 0 ? availableReps[0] : null
   );
 
-  // Filter sets by exact rep count
-  // Then group by day and pick the best weight for each day
-  const chartData = useMemo(() => {
-    if (selectedReps === null) return [];
+  // Chart data for bodyweight exercises: group by day, show max reps
+  const bodyweightChartData = useMemo(() => {
+    if (!usesBodyWeight) return [];
+
+    // Group by day and pick the best reps for each day
+    const byDay = new Map<string, WorkoutSet>();
+    sets.forEach((set) => {
+      if (set.reps === undefined || set.reps <= 0) return;
+      const dayKey = format(new Date(set.date), 'yyyy-MM-dd');
+      const existing = byDay.get(dayKey);
+      if (!existing || set.reps > (existing.reps ?? 0)) {
+        byDay.set(dayKey, set);
+      }
+    });
+
+    // Convert to array and sort by date (oldest first)
+    return Array.from(byDay.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, set]) => ({
+        date: format(new Date(set.date), 'MMM d'),
+        reps: set.reps,
+        fullDate: format(new Date(set.date), 'MMM d, yyyy'),
+      }));
+  }, [sets, usesBodyWeight]);
+
+  // Chart data for regular exercises: filter by rep count, group by day, show max weight
+  const regularChartData = useMemo(() => {
+    if (usesBodyWeight || selectedReps === null) return [];
 
     // Filter sets with exactly selectedReps
     const filteredSets = sets.filter(
@@ -54,9 +83,13 @@ export default function ProgressChart({ sets }: ProgressChartProps) {
         reps: set.reps,
         fullDate: format(new Date(set.date), 'MMM d, yyyy'),
       }));
-  }, [sets, selectedReps]);
+  }, [sets, selectedReps, usesBodyWeight]);
 
-  if (sets.length === 0 || availableReps.length === 0) {
+  const chartData = usesBodyWeight ? bodyweightChartData : regularChartData;
+
+  // For bodyweight exercises, check if there are any sets
+  // For regular exercises, check if there are available rep counts
+  if (sets.length === 0 || (!usesBodyWeight && availableReps.length === 0)) {
     return (
       <div className="text-center text-gray-500 dark:text-gray-400 py-8">
         No data to display. Log some sets to see your progress!
@@ -66,27 +99,40 @@ export default function ProgressChart({ sets }: ProgressChartProps) {
 
   return (
     <div className="w-full bg-white dark:bg-gray-800 p-4 rounded-lg">
-      {/* Rep selector */}
-      <div className="flex items-center gap-3 mb-4">
-        <label className="text-sm text-gray-600 dark:text-gray-400">
-          Show sets with exactly
-        </label>
-        <select
-          value={selectedReps ?? ''}
-          onChange={(e) => setSelectedReps(Number(e.target.value))}
-          className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          {availableReps.map((reps) => (
-            <option key={reps} value={reps}>
-              {reps} {reps === 1 ? 'rep' : 'reps'}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Rep selector - only for non-bodyweight exercises */}
+      {!usesBodyWeight && (
+        <div className="flex items-center gap-3 mb-4">
+          <label className="text-sm text-gray-600 dark:text-gray-400">
+            Show sets with exactly
+          </label>
+          <select
+            value={selectedReps ?? ''}
+            onChange={(e) => setSelectedReps(Number(e.target.value))}
+            className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {availableReps.map((reps) => (
+              <option key={reps} value={reps}>
+                {reps} {reps === 1 ? 'rep' : 'reps'}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Bodyweight description */}
+      {usesBodyWeight && (
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Showing max reps per day
+          </p>
+        </div>
+      )}
 
       {chartData.length === 0 ? (
         <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-          No sets found with exactly {selectedReps} {selectedReps === 1 ? 'rep' : 'reps'}.
+          {usesBodyWeight
+            ? 'No sets found.'
+            : `No sets found with exactly ${selectedReps} ${selectedReps === 1 ? 'rep' : 'reps'}.`}
         </div>
       ) : (
         <div className="w-full h-72">
@@ -101,7 +147,12 @@ export default function ProgressChart({ sets }: ProgressChartProps) {
               <YAxis
                 stroke="#9CA3AF"
                 style={{ fontSize: '12px' }}
-                label={{ value: 'Weight (lbs)', angle: -90, position: 'insideLeft', style: { fill: '#9CA3AF' } }}
+                label={{
+                  value: usesBodyWeight ? 'Reps' : 'Weight (lbs)',
+                  angle: -90,
+                  position: 'insideLeft',
+                  style: { fill: '#9CA3AF' }
+                }}
               />
               <Tooltip
                 contentStyle={{
@@ -112,12 +163,18 @@ export default function ProgressChart({ sets }: ProgressChartProps) {
                 }}
                 labelStyle={{ color: '#F9FAFB' }}
                 formatter={(value, name) => {
+                  if (usesBodyWeight && name === 'reps' && value !== undefined) {
+                    return [`${value} reps`, 'Reps'];
+                  }
                   if (name === 'weight' && value !== undefined) return [`${value} lbs`, 'Weight'];
                   return [value ?? '', name ?? ''];
                 }}
                 labelFormatter={(label, payload) => {
                   if (payload && payload.length > 0) {
                     const data = payload[0].payload;
+                    if (usesBodyWeight) {
+                      return data.fullDate;
+                    }
                     return `${data.fullDate} - ${data.reps} reps`;
                   }
                   return label;
@@ -125,7 +182,7 @@ export default function ProgressChart({ sets }: ProgressChartProps) {
               />
               <Line
                 type="monotone"
-                dataKey="weight"
+                dataKey={usesBodyWeight ? 'reps' : 'weight'}
                 stroke="#3B82F6"
                 strokeWidth={2}
                 dot={{ fill: '#3B82F6', r: 4 }}
