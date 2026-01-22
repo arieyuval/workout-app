@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
-const inputPath = path.join(__dirname, '../public/plates-logo.png');
+const inputPath = path.join(__dirname, '../public/plates-logo-filled.png'); //test 1
 const filledInputPath = path.join(__dirname, '../public/plates-logo-filled.png');
 const outputDir = path.join(__dirname, '../public/icons');
 
@@ -15,7 +15,7 @@ if (!fs.existsSync(outputDir)) {
 }
 
 async function generateIcons() {
-  console.log('Generating PWA icons from plates-logo.png...\n');
+  console.log('Generating PWA icons from plates-logo-filled.png...\n');//test 1
 
   for (const size of sizes) {
     await sharp(filledInputPath)
