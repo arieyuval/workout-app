@@ -18,7 +18,7 @@ async function generateIcons() {
   console.log('Generating PWA icons from plates-logo.png...\n');
 
   for (const size of sizes) {
-    await sharp(inputPath)
+    await sharp(filledInputPath)
       .resize(size, size, {
         fit: 'contain',
         background: bgColor
