@@ -8,6 +8,7 @@ import ExerciseCard from './components/ExerciseCard';
 import CardioExerciseCard from './components/CardioExerciseCard';
 import AddExerciseModal from './components/AddExerciseModal';
 import NavBar from './components/NavBar';
+import Footer from './components/Footer';
 import { useWorkoutData } from './context/WorkoutDataContext';
 import type { MuscleGroup } from '@/lib/types';
 
@@ -195,6 +196,9 @@ export default function Home() {
         onClose={() => setIsAddModalOpen(false)}
         onExerciseAdded={handleExerciseAdded}
       />
+
+      {/* Footer */}
+      <Footer />
     </>
   );
 }

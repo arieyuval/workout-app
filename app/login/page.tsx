@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createBrowserSupabaseClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Footer from '../components/Footer';
 
 export default function LoginPage() {
   const [name, setName] = useState('');
@@ -260,6 +261,8 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

@@ -37,8 +37,9 @@ export async function middleware(request: NextRequest) {
   // Protected routes - redirect to login if not authenticated
   const isAuthPage = request.nextUrl.pathname.startsWith('/login');
   const isApiRoute = request.nextUrl.pathname.startsWith('/api');
+  const isDeleteDataPage = request.nextUrl.pathname.startsWith('/delete-data');
 
-  if (!user && !isAuthPage && !isApiRoute) {
+  if (!user && !isAuthPage && !isApiRoute && !isDeleteDataPage) {
     // Redirect to login page
     const url = request.nextUrl.clone();
     url.pathname = '/login';
