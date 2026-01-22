@@ -6,7 +6,7 @@ const isMobileBuild = process.env.IS_CAPACITOR === "true";
 
 const withPWA = withPWAInit({
   dest: "public",
-  disable: process.env.NODE_ENV === "development",
+  disable: process.env.NODE_ENV === "development" || isMobileBuild, // Disable PWA for mobile native builds
   register: true,
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
@@ -17,7 +17,7 @@ const withPWA = withPWAInit({
     clientsClaim: true,
     runtimeCaching: [
       {
-        urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
+        urlPattern: /^https:\/\/.\.supabase\.co\/rest\/v1\/./i,
         handler: "NetworkFirst",
         options: {
           cacheName: "supabase-api-cache",
@@ -84,7 +84,7 @@ const nextConfig: NextConfig = {
   // 2. Switch to 'export' ONLY for the iOS build
   output: isMobileBuild ? 'export' : undefined,
 
-  trailingSlash: false,
+  trailingSlash: isMobileBuild ? true : false, // Helps with routing on native devices
 
   // 3. Disable image optimization ONLY for the iOS build
   images: {
@@ -93,48 +93,49 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
 
-  // 4. Wrap headers so they only run when NOT building for mobile
-  async headers() {
-    if (isMobileBuild) return []; 
-
-    return [
-      {
-        source: "/sw.js",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=0, must-revalidate",
-          },
-          {
-            key: "Service-Worker-Allowed",
-            value: "/",
-          },
-        ],
-      },
-      {
-        source: "/manifest.json",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=0, must-revalidate",
-          },
-        ],
-      },
-      {
-        source: "/.well-known/assetlinks.json",
-        headers: [
-          {
-            key: "Content-Type",
-            value: "application/json",
-          },
-          {
-            key: "Cache-Control",
-            value: "public, max-age=3600",
-          },
-        ],
-      },
-    ];
-  },
+  // 4. Spread headers ONLY if it's NOT a mobile build
+  // This prevents the build crash on Mac and Vercel
+  ...( !isMobileBuild && {
+    async headers() {
+      return [
+        {
+          source: "/sw.js",
+          headers: [
+            {
+              key: "Cache-Control",
+              value: "public, max-age=0, must-revalidate",
+            },
+            {
+              key: "Service-Worker-Allowed",
+              value: "/",
+            },
+          ],
+        },
+        {
+          source: "/manifest.json",
+          headers: [
+            {
+              key: "Cache-Control",
+              value: "public, max-age=0, must-revalidate",
+            },
+          ],
+        },
+        {
+          source: "/.well-known/assetlinks.json",
+          headers: [
+            {
+              key: "Content-Type",
+              value: "application/json",
+            },
+            {
+              key: "Cache-Control",
+              value: "public, max-age=3600",
+            },
+          ],
+        },
+      ];
+    },
+  }),
 };
 
 export default withPWA(nextConfig);
