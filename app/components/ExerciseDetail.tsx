@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import type { Exercise, WorkoutSet, PersonalRecord } from '@/lib/types';
 import { format } from 'date-fns';
-import { Pin, X, Check, Pencil, Trash2 } from 'lucide-react';
+import { Pin, X, Check, Pencil, Trash2, Target } from 'lucide-react';
 import SetLogForm from './SetLogForm';
 import HistoryTable from './HistoryTable';
 import PRList from './PRList';
@@ -44,6 +44,12 @@ export default function ExerciseDetail({
   const [isEditingPinnedNote, setIsEditingPinnedNote] = useState(false);
   const [pinnedNoteInput, setPinnedNoteInput] = useState<string>(exercise.pinned_note || '');
   const [isUpdatingPinnedNote, setIsUpdatingPinnedNote] = useState(false);
+
+  // Goal weight state
+  const [goalWeight, setGoalWeight] = useState<number | null>(exercise.goal_weight ?? null);
+  const [goalWeightInput, setGoalWeightInput] = useState<string>(exercise.goal_weight?.toString() || '');
+  const [isEditingGoalWeight, setIsEditingGoalWeight] = useState(false);
+  const [isUpdatingGoalWeight, setIsUpdatingGoalWeight] = useState(false);
 
   // Fetch current max for selected rep count
   useEffect(() => {
@@ -184,6 +190,31 @@ export default function ExerciseDetail({
     }
   };
 
+  const handleUpdateGoalWeight = async () => {
+    setIsUpdatingGoalWeight(true);
+    try {
+      const newGoalWeight = goalWeightInput ? parseFloat(goalWeightInput) : null;
+      const response = await fetch(`/api/exercises/${exercise.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          goal_weight: newGoalWeight,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update goal weight');
+
+      setGoalWeight(newGoalWeight);
+      setIsEditingGoalWeight(false);
+    } catch (error) {
+      console.error('Error updating goal weight:', error);
+    } finally {
+      setIsUpdatingGoalWeight(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
       {/* Header */}
@@ -302,7 +333,7 @@ export default function ExerciseDetail({
       </div>
 
       {/* Stats Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
         {/* Last Set */}
         <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
           <h3 className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
@@ -360,6 +391,66 @@ export default function ExerciseDetail({
             </div>
           </div>
         </div>
+
+        {/* Goal Weight */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 sm:p-6 rounded-lg shadow-md">
+          <div className="flex items-center gap-1 text-xs sm:text-sm font-medium text-blue-600 dark:text-blue-400 mb-2">
+            <Target className="w-4 h-4" />
+            Goal Weight
+          </div>
+          {isEditingGoalWeight ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={goalWeightInput}
+                  onChange={(e) => setGoalWeightInput(e.target.value)}
+                  className="w-24 px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="lbs"
+                  autoFocus
+                  disabled={isUpdatingGoalWeight}
+                />
+                <span className="text-sm text-gray-500 dark:text-gray-400">lbs</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleUpdateGoalWeight}
+                  disabled={isUpdatingGoalWeight}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditingGoalWeight(false);
+                    setGoalWeightInput(goalWeight?.toString() || '');
+                  }}
+                  disabled={isUpdatingGoalWeight}
+                  className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              onClick={() => setIsEditingGoalWeight(true)}
+              className="flex items-center gap-2 cursor-pointer group"
+              title="Click to edit"
+            >
+              <span className={`text-2xl sm:text-3xl font-bold group-hover:underline ${
+                currentMax && goalWeight && currentMax >= goalWeight
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-blue-600 dark:text-blue-400'
+              }`}>
+                {goalWeight ? `${goalWeight} lbs` : 'Set goal'}
+              </span>
+              <Pencil className="w-4 h-4 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Log New Set Form */}
@@ -380,7 +471,7 @@ export default function ExerciseDetail({
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
           Progress Over Time
         </h2>
-        <ProgressChart sets={sets} usesBodyWeight={exercise.uses_body_weight} />
+        <ProgressChart sets={sets} usesBodyWeight={exercise.uses_body_weight} goalWeight={goalWeight} />
       </div>
 
       {/* History Table */}

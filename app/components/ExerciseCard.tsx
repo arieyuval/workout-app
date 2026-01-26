@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { Exercise, WorkoutSet } from '@/lib/types';
-import { ChevronRight, Plus, Pin, StickyNote } from 'lucide-react';
+import { ChevronRight, Plus, Pin, StickyNote, Target } from 'lucide-react';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -143,7 +143,19 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
             <h3 className="text-base sm:text-lg font-bold pr-2 text-gray-900 dark:text-white">
               {exercise.name}
             </h3>
-            <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {exercise.goal_weight && (
+                <span className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${
+                  currentMax && currentMax >= exercise.goal_weight
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                }`}>
+                  <Target className="w-3 h-3" />
+                  Goal: {exercise.goal_weight}
+                </span>
+              )}
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </div>
           </div>
 
           <div className="flex items-center gap-2 mb-1">

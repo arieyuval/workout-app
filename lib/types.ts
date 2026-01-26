@@ -12,6 +12,7 @@ export interface Exercise {
   is_base: boolean; // true for base exercises shown to all users, false for user-created
   uses_body_weight: boolean; // true for exercises that use body weight (pull-ups, dips, etc.)
   pinned_note?: string; // optional pinned note that always displays on the card
+  goal_weight?: number; // optional goal weight for PR tracking
   created_at?: string;
 }
 

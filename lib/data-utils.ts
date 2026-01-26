@@ -249,3 +249,27 @@ export async function updateExercisePinnedNote(
 
   return data;
 }
+
+/**
+ * Update an exercise's goal weight
+ * @param exerciseId - The ID of the exercise
+ * @param goalWeight - The new goal weight (or null to clear)
+ */
+export async function updateExerciseGoalWeight(
+  exerciseId: string,
+  goalWeight: number | null
+) {
+  const { data, error } = await supabase
+    .from('exercises')
+    .update({ goal_weight: goalWeight })
+    .eq('id', exerciseId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating exercise goal weight:', error);
+    return null;
+  }
+
+  return data;
+}
