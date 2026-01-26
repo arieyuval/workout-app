@@ -1,11 +1,14 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": ["delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.plates.app",
       "sha256_cert_fingerprints": [
-        "FB:E8:B8:F4:9B:4B:D6:AF:C0:22:44:7E:49:DC:35:3E:A5:41:9D:B4:93:A3:A0:63:43:22:D5:1A:67:AC:F6:D8"
+        "FB:E8:B8:F4:9B:4B:D6:AF:C0:22:44:7E:49:DC:35:3E:A5:41:9D:B4:93:A3:A0:63:43:22:D5:1A:67:AC:F6:D8",
+        "2C:25:38:B6:86:1D:FD:0E:09:5F:57:1F:B4:77:67:A8:5C:D8:E4:EE:79:02:A7:5B:9B:E4:FC:B7:10:59:E4:26"
       ]
     }
   }
