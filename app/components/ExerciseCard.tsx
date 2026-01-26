@@ -144,15 +144,30 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
               {exercise.name}
             </h3>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {exercise.goal_weight && (
-                <span className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${
-                  currentMax && currentMax >= exercise.goal_weight
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                }`}>
-                  <Target className="w-3 h-3" />
-                  Goal: {exercise.goal_weight}
-                </span>
+              {exercise.uses_body_weight ? (
+                // Goal Reps for body weight exercises
+                exercise.goal_reps && (
+                  <span className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${
+                    currentMax && currentMax >= exercise.goal_reps
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                  }`}>
+                    <Target className="w-3 h-3" />
+                    Goal: {exercise.goal_reps} reps
+                  </span>
+                )
+              ) : (
+                // Goal Weight for strength exercises
+                exercise.goal_weight && (
+                  <span className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${
+                    currentMax && currentMax >= exercise.goal_weight
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                  }`}>
+                    <Target className="w-3 h-3" />
+                    Goal: {exercise.goal_weight}
+                  </span>
+                )
               )}
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>

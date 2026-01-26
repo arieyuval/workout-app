@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getExercise, updateExerciseDefaultPrReps, updateExercisePinnedNote, updateExerciseGoalWeight } from '@/lib/data-utils';
+import { getExercise, updateExerciseDefaultPrReps, updateExercisePinnedNote, updateExerciseGoalWeight, updateExerciseGoalReps } from '@/lib/data-utils';
 
 export async function GET(
   request: NextRequest,
@@ -70,6 +70,21 @@ export async function PATCH(
       if (!updated) {
         return NextResponse.json(
           { error: 'Failed to update goal weight' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json(updated);
+    }
+
+    if (body.goal_reps !== undefined) {
+      // Allow null to clear the goal reps
+      const goalValue = body.goal_reps === null || body.goal_reps === '' ? null : parseInt(body.goal_reps);
+      const updated = await updateExerciseGoalReps(id, goalValue);
+
+      if (!updated) {
+        return NextResponse.json(
+          { error: 'Failed to update goal reps' },
           { status: 500 }
         );
       }

@@ -9,9 +9,10 @@ interface ProgressChartProps {
   sets: WorkoutSet[];
   usesBodyWeight?: boolean;
   goalWeight?: number | null;
+  goalReps?: number | null;
 }
 
-export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight }: ProgressChartProps) {
+export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight, goalReps }: ProgressChartProps) {
   // For bodyweight exercises: show reps progression over time (best reps per day)
   // For regular exercises: show weight progression for a specific rep count
 
@@ -88,31 +89,48 @@ export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight
 
   const chartData = usesBodyWeight ? bodyweightChartData : regularChartData;
 
-  // Calculate Y-axis domain to include goal weight (only for regular exercises)
+  // Calculate Y-axis domain to include goal (weight for strength, reps for bodyweight)
   const yAxisDomain = useMemo(() => {
-    if (usesBodyWeight || chartData.length === 0) return undefined;
+    if (chartData.length === 0) return undefined;
 
-    const weights = chartData.map((d) => d.weight as number).filter((w) => w !== undefined);
-    if (goalWeight) {
-      weights.push(goalWeight);
+    if (usesBodyWeight) {
+      const reps = chartData.map((d) => d.reps as number).filter((r) => r !== undefined);
+      if (goalReps) {
+        reps.push(goalReps);
+      }
+      if (reps.length === 0) return undefined;
+      const min = Math.min(...reps);
+      const max = Math.max(...reps);
+      const padding = (max - min) * 0.1 || 2;
+      return [Math.floor(min - padding), Math.ceil(max + padding)];
+    } else {
+      const weights = chartData.map((d) => d.weight as number).filter((w) => w !== undefined);
+      if (goalWeight) {
+        weights.push(goalWeight);
+      }
+      if (weights.length === 0) return undefined;
+      const min = Math.min(...weights);
+      const max = Math.max(...weights);
+      const padding = (max - min) * 0.1 || 5;
+      return [Math.floor(min - padding), Math.ceil(max + padding)];
     }
-    if (weights.length === 0) return undefined;
-
-    const min = Math.min(...weights);
-    const max = Math.max(...weights);
-    const padding = (max - min) * 0.1 || 5; // 10% padding or 5 lbs minimum
-
-    return [Math.floor(min - padding), Math.ceil(max + padding)];
-  }, [chartData, goalWeight, usesBodyWeight]);
+  }, [chartData, goalWeight, goalReps, usesBodyWeight]);
 
   // Determine if goal has been reached (for goal line color)
-  const maxWeight = useMemo(() => {
-    if (usesBodyWeight || chartData.length === 0) return null;
-    const weights = chartData.map((d) => d.weight as number).filter((w) => w !== undefined);
-    return weights.length > 0 ? Math.max(...weights) : null;
+  const maxValue = useMemo(() => {
+    if (chartData.length === 0) return null;
+    if (usesBodyWeight) {
+      const reps = chartData.map((d) => d.reps as number).filter((r) => r !== undefined);
+      return reps.length > 0 ? Math.max(...reps) : null;
+    } else {
+      const weights = chartData.map((d) => d.weight as number).filter((w) => w !== undefined);
+      return weights.length > 0 ? Math.max(...weights) : null;
+    }
   }, [chartData, usesBodyWeight]);
 
-  const goalReached = maxWeight !== null && goalWeight && maxWeight >= goalWeight;
+  const goalReached = usesBodyWeight
+    ? maxValue !== null && goalReps && maxValue >= goalReps
+    : maxValue !== null && goalWeight && maxValue >= goalWeight;
   const goalLineColor = goalReached ? '#10B981' : '#3B82F6'; // green if reached, blue otherwise
 
   // For bodyweight exercises, check if there are any sets
@@ -209,7 +227,7 @@ export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight
                   return label;
                 }}
               />
-              {/* Goal weight reference line */}
+              {/* Goal reference line (weight for strength, reps for bodyweight) */}
               {!usesBodyWeight && goalWeight && (
                 <ReferenceLine
                   y={goalWeight}
@@ -218,6 +236,20 @@ export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight
                   strokeWidth={2}
                   label={{
                     value: `Goal: ${goalWeight}`,
+                    position: 'right',
+                    fill: goalLineColor,
+                    fontSize: 11,
+                  }}
+                />
+              )}
+              {usesBodyWeight && goalReps && (
+                <ReferenceLine
+                  y={goalReps}
+                  stroke={goalLineColor}
+                  strokeDasharray={goalReached ? undefined : '5 5'}
+                  strokeWidth={2}
+                  label={{
+                    value: `Goal: ${goalReps}`,
                     position: 'right',
                     fill: goalLineColor,
                     fontSize: 11,

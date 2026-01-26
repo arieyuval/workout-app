@@ -273,3 +273,27 @@ export async function updateExerciseGoalWeight(
 
   return data;
 }
+
+/**
+ * Update an exercise's goal reps (for body weight exercises)
+ * @param exerciseId - The ID of the exercise
+ * @param goalReps - The new goal reps (or null to clear)
+ */
+export async function updateExerciseGoalReps(
+  exerciseId: string,
+  goalReps: number | null
+) {
+  const { data, error } = await supabase
+    .from('exercises')
+    .update({ goal_reps: goalReps })
+    .eq('id', exerciseId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating exercise goal reps:', error);
+    return null;
+  }
+
+  return data;
+}
