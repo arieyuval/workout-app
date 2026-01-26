@@ -70,7 +70,7 @@ export default function LoginPage() {
       <div className="flex flex-col items-center max-w-md w-full">
         {/* Tagline at top */}
         <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 text-center">
-          The easiest way to track your lifts and achieve prodgressive overload
+          The easiest way to track your lifts and achieve progressive overload
         </p>
 
         {/* Logo with curved text around it */}
