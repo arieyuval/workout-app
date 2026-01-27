@@ -120,7 +120,7 @@ export default function LoginPage() {
             {isSignUp ? 'Sign up' : 'Sign in'}
           </h2>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form method="post" className="space-y-4" onSubmit={handleSubmit}>
             {isSignUp && (
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
