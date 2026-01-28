@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Bug } from 'lucide-react';
+import BugReportModal from './BugReportModal';
 
 export default function UserMenu() {
   const { user, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [isBugReportOpen, setIsBugReportOpen] = useState(false);
 
   if (!user) return null;
 
@@ -43,6 +45,16 @@ export default function UserMenu() {
               </p>
             </div>
             <button
+              onClick={() => {
+                setIsOpen(false);
+                setIsBugReportOpen(true);
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <Bug className="w-4 h-4" />
+              Report a Bug
+            </button>
+            <button
               onClick={handleSignOut}
               className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
@@ -52,6 +64,12 @@ export default function UserMenu() {
           </div>
         </>
       )}
+
+      {/* Bug Report Modal */}
+      <BugReportModal
+        isOpen={isBugReportOpen}
+        onClose={() => setIsBugReportOpen(false)}
+      />
     </div>
   );
 }
