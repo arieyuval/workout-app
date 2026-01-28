@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { createBrowserSupabaseClient } from "@/lib/supabase-browser";
 
 export default function DeleteDataPage() {
-  const { user } = useAuth();
+  const { user, session, signOut } = useAuth();
   const [confirmText, setConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -17,7 +17,7 @@ export default function DeleteDataPage() {
       return;
     }
 
-    if (!user) {
+    if (!user || !session?.access_token) {
       setMessage({ type: "error", text: "You must be logged in to delete your data" });
       return;
     }
@@ -26,48 +26,40 @@ export default function DeleteDataPage() {
     setMessage(null);
 
     try {
-      // Delete user's sets
-      const { error: setsError } = await supabase
-        .from("sets")
-        .delete()
-        .eq("user_id", user.id);
+      // Use Supabase client to invoke the Edge Function (handles auth automatically)
+      const supabase = createBrowserSupabaseClient();
 
-      if (setsError) throw setsError;
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        headers: {
+          'x-user-token': session.access_token,
+        },
+      });
 
-      // Delete user's exercises
-      const { error: exercisesError } = await supabase
-        .from("exercises")
-        .delete()
-        .eq("user_id", user.id);
+      if (error) {
+        console.error('Delete account error:', error);
+        throw new Error(error.message || 'Failed to delete account');
+      }
 
-      if (exercisesError) throw exercisesError;
-
-      // Delete user's weight logs
-      const { error: weightError } = await supabase
-        .from("weight_logs")
-        .delete()
-        .eq("user_id", user.id);
-
-      if (weightError) throw weightError;
-
-      // Delete user's profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", user.id);
-
-      if (profileError) throw profileError;
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       setMessage({
         type: "success",
-        text: "Your data has been deleted. You can now sign out or continue using the app with a fresh start."
+        text: "Your account and all data have been permanently deleted. Redirecting..."
       });
       setConfirmText("");
+
+      // Sign out and redirect after a short delay
+      setTimeout(async () => {
+        await signOut();
+        window.location.href = '/login';
+      }, 2000);
     } catch (error) {
-      console.error("Error deleting data:", error);
+      console.error("Error deleting account:", error);
       setMessage({
         type: "error",
-        text: "An error occurred while deleting your data. Please try again or contact support."
+        text: error instanceof Error ? error.message : "An error occurred while deleting your account. Please try again or contact support."
       });
     } finally {
       setIsDeleting(false);
@@ -77,14 +69,15 @@ export default function DeleteDataPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-6">
       <div className="max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Delete Your Data</h1>
+        <h1 className="text-2xl font-bold mb-6">Delete Your Account</h1>
 
         <div className="bg-zinc-900 rounded-lg p-6 mb-6">
           <h2 className="text-lg font-semibold mb-4 text-red-400">Warning</h2>
           <p className="text-zinc-300 mb-4">
-            This action will permanently delete all your data from Plates, including:
+            This action will permanently delete your account and all data from Plates, including:
           </p>
           <ul className="list-disc list-inside text-zinc-400 mb-4 space-y-1">
+            <li>Your account and login credentials</li>
             <li>All workout history</li>
             <li>All exercises you&apos;ve created</li>
             <li>All sets and reps logged</li>
@@ -92,7 +85,7 @@ export default function DeleteDataPage() {
             <li>Your profile information</li>
           </ul>
           <p className="text-zinc-300 font-medium">
-            This action cannot be undone.
+            This action cannot be undone. You will need to create a new account to use Plates again.
           </p>
         </div>
 
@@ -120,7 +113,7 @@ export default function DeleteDataPage() {
               disabled={isDeleting || confirmText !== "DELETE"}
               className="w-full bg-red-600 hover:bg-red-700 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
             >
-              {isDeleting ? "Deleting..." : "Permanently Delete My Data"}
+              {isDeleting ? "Deleting..." : "Permanently Delete My Account"}
             </button>
 
             {message && (
