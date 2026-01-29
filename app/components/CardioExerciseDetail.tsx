@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Exercise, WorkoutSet } from '@/lib/types';
+import type { ExerciseWithUserData, WorkoutSet } from '@/lib/types';
 import { format } from 'date-fns';
 import { Pin, X, Check, Pencil, Trash2 } from 'lucide-react';
 import CardioSetLogForm from './CardioSetLogForm';
@@ -11,7 +11,7 @@ import CardioPaceChart from './CardioPaceChart';
 import { useWorkoutData } from '../context/WorkoutDataContext';
 
 interface CardioExerciseDetailProps {
-  exercise: Exercise;
+  exercise: ExerciseWithUserData;
   initialSets: WorkoutSet[];
   lastSet: WorkoutSet | null;
 }

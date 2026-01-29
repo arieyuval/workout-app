@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Exercise, WorkoutSet, PersonalRecord } from '@/lib/types';
+import type { ExerciseWithUserData, WorkoutSet, PersonalRecord } from '@/lib/types';
 import { format } from 'date-fns';
 import { Pin, X, Check, Pencil, Trash2, Target } from 'lucide-react';
 import SetLogForm from './SetLogForm';
@@ -19,7 +19,7 @@ const formatWeight = (weight: number, usesBodyWeight: boolean): string => {
 };
 
 interface ExerciseDetailProps {
-  exercise: Exercise;
+  exercise: ExerciseWithUserData;
   initialSets: WorkoutSet[];
   initialPRs: PersonalRecord[];
   lastSet: WorkoutSet | null;
@@ -34,9 +34,9 @@ export default function ExerciseDetail({
   const { refreshExerciseSets, fetchAllData } = useWorkoutData();
   const [sets, setSets] = useState<WorkoutSet[]>(initialSets);
   const [prs, setPRs] = useState<PersonalRecord[]>(initialPRs);
-  const [selectedRepMax, setSelectedRepMax] = useState<number | ''>(exercise.default_pr_reps);
+  const [selectedRepMax, setSelectedRepMax] = useState<number | ''>(exercise.user_pr_reps);
   const [currentMax, setCurrentMax] = useState<number | null>(null);
-  const [defaultPrReps, setDefaultPrReps] = useState<number | ''>(exercise.default_pr_reps);
+  const [userPrReps, setDefaultPrReps] = useState<number | ''>(exercise.user_pr_reps);
   const [isUpdatingDefault, setIsUpdatingDefault] = useState(false);
 
   // Pinned note state
@@ -128,7 +128,7 @@ export default function ExerciseDetail({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          default_pr_reps: newReps,
+          user_pr_reps: newReps,
         }),
       });
 
@@ -272,7 +272,7 @@ export default function ExerciseDetail({
                 inputMode="numeric"
                 min="0"
                 max="50"
-                value={defaultPrReps}
+                value={userPrReps}
                 onChange={(e) => {
                   const value = e.target.value === '' ? '' : parseInt(e.target.value);
                   if (value === '' || !isNaN(value)) {
@@ -281,7 +281,7 @@ export default function ExerciseDetail({
                 }}
                 onBlur={(e) => {
                   const value = e.target.value === '' ? '' : parseInt(e.target.value);
-                  if (value !== '' && !isNaN(value) && value !== exercise.default_pr_reps) {
+                  if (value !== '' && !isNaN(value) && value !== exercise.user_pr_reps) {
                     handleUpdateDefaultPrReps(value);
                   }
                 }}

@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import type { Exercise, WorkoutSet } from '@/lib/types';
+import type { ExerciseWithUserData, WorkoutSet } from '@/lib/types';
 import { ChevronRight, Plus, Pin, StickyNote, Target } from 'lucide-react';
 import { getPrimaryMuscleGroup, getMuscleGroups } from '@/lib/muscle-utils';
 
 interface ExerciseCardProps {
-  exercise: Exercise;
+  exercise: ExerciseWithUserData;
   topSetLastSession: WorkoutSet | null;
   lastSet: WorkoutSet | null;
   currentMax: number | null;
@@ -230,7 +230,7 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
           {/* PR */}
           <div className={`${prColors.bg} p-2 sm:p-3 rounded-md`}>
             <div className={`text-[9px] sm:text-[10px] ${prColors.text} mb-1 font-medium`}>
-              {exercise.default_pr_reps}RM PR
+              {exercise.user_pr_reps}RM PR
             </div>
             {currentMax !== null ? (
               <div className={`text-xs sm:text-sm font-bold ${prColors.text}`}>

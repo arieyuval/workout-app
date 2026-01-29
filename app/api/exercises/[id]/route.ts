@@ -34,8 +34,8 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    if (body.default_pr_reps !== undefined) {
-      const updated = await updateExerciseDefaultPrReps(id, body.default_pr_reps);
+    if (body.user_pr_reps !== undefined) {
+      const updated = await updateExerciseDefaultPrReps(id, body.user_pr_reps);
 
       if (!updated) {
         return NextResponse.json(

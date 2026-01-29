@@ -8,12 +8,8 @@ export interface Exercise {
   name: string;
   muscle_group: MuscleGroup | MuscleGroup[]; // Supports both single value (string) and multiple values (array) for backward compatibility
   exercise_type: ExerciseType;
-  default_pr_reps: number; // default rep count for PR display (only for strength exercises)
   is_base: boolean; // true for base exercises shown to all users, false for user-created
   uses_body_weight: boolean; // true for exercises that use body weight (pull-ups, dips, etc.)
-  pinned_note?: string; // optional pinned note that always displays on the card
-  goal_weight?: number; // optional goal weight for PR tracking (strength exercises)
-  goal_reps?: number; // optional goal reps for PR tracking (body weight exercises)
   created_at?: string;
 }
 
@@ -21,7 +17,19 @@ export interface UserExercise {
   id: string;
   user_id: string;
   exercise_id: string;
+  user_pr_reps?: number; // user's preferred rep count for PR display (only for strength exercises)
+  pinned_note?: string; // optional pinned note that always displays on the card for this user
+  goal_weight?: number; // optional goal weight for PR tracking (strength exercises) for this user
+  goal_reps?: number; // optional goal reps for PR tracking (body weight exercises) for this user
   created_at?: string;
+}
+
+// Combined type for exercise with user-specific settings
+export interface ExerciseWithUserData extends Exercise {
+  user_pr_reps?: number;
+  pinned_note?: string;
+  goal_weight?: number;
+  goal_reps?: number;
 }
 
 export interface WorkoutSet {
@@ -55,6 +63,7 @@ export interface SetFormData {
 
 // Database insert types (without id and timestamps)
 export type ExerciseInsert = Omit<Exercise, 'id' | 'created_at'>;
+export type UserExerciseInsert = Omit<UserExercise, 'id' | 'created_at'>;
 export type WorkoutSetInsert = Omit<WorkoutSet, 'id' | 'created_at'>;
 
 // User profile for body weight tracking

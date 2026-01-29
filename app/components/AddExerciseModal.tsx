@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { X, Plus } from 'lucide-react';
-import type { MuscleGroup, ExerciseType, Exercise } from '@/lib/types';
+import type { MuscleGroup, ExerciseType, ExerciseWithUserData } from '@/lib/types';
 import { getMuscleGroups } from '@/lib/muscle-utils';
 
 interface AddExerciseModalProps {
@@ -33,7 +33,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
   const [exerciseName, setExerciseName] = useState('');
   const [exerciseType, setExerciseType] = useState<ExerciseType>('strength');
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<MuscleGroup[]>(['Chest']);
-  const [defaultPrReps, setDefaultPrReps] = useState<number | ''>('');
+  const [userPrReps, setDefaultPrReps] = useState<number | ''>('');
   // Strength PR fields
   const [prWeight, setPrWeight] = useState<number | ''>('');
   const [prReps, setPrReps] = useState<number | ''>('');
@@ -46,8 +46,8 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
   const [error, setError] = useState('');
 
   // Autocomplete state
-  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
-  const [suggestions, setSuggestions] = useState<Exercise[]>([]);
+  const [allExercises, setAllExercises] = useState<ExerciseWithUserData[]>([]);
+  const [suggestions, setSuggestions] = useState<ExerciseWithUserData[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -112,7 +112,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
   }, []);
 
   // Handle selecting a suggestion
-  const handleSelectSuggestion = (exercise: Exercise) => {
+  const handleSelectSuggestion = (exercise: ExerciseWithUserData) => {
     setExerciseName(exercise.name);
     setExerciseType(exercise.exercise_type);
     if (exercise.exercise_type === 'strength') {
@@ -121,7 +121,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
         ? exercise.muscle_group
         : [exercise.muscle_group];
       setSelectedMuscleGroups(groups);
-      setDefaultPrReps(exercise.default_pr_reps);
+      setUserPrReps(exercise.user_pr_reps || 3);
       setUsesBodyWeight(exercise.uses_body_weight ?? false);
     }
     setShowSuggestions(false);
@@ -166,8 +166,8 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
         return;
       }
 
-      // Validate defaultPrReps only if provided (optional field, defaults to 3)
-      if (defaultPrReps !== '' && (defaultPrReps < 1 || defaultPrReps > 50)) {
+      // Validate userPrReps only if provided (optional field, defaults to 3)
+      if (userPrReps !== '' && (userPrReps < 1 || userPrReps > 50)) {
         setError('Default PR reps must be between 1 and 50');
         return;
       }
@@ -200,7 +200,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
               ? selectedMuscleGroups[0]  // Store as string if single value
               : selectedMuscleGroups,    // Store as array if multiple
           exercise_type: exerciseType,
-          default_pr_reps: exerciseType === 'strength' ? (defaultPrReps || 3) : 1, // Default to 3 for strength, 1 for cardio
+          user_pr_reps: exerciseType === 'strength' ? (userPrReps || 3) : 1, // Default to 3 for strength, 1 for cardio
           uses_body_weight: exerciseType === 'strength' ? usesBodyWeight : false,
         }),
       });
@@ -425,7 +425,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
                   inputMode="numeric"
                   min="1"
                   max="50"
-                  value={defaultPrReps}
+                  value={userPrReps}
                   onChange={(e) => setDefaultPrReps(e.target.value === '' ? '' : parseInt(e.target.value))}
                   placeholder="3"
                   disabled={isSubmitting}

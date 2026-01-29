@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import type { Exercise, WorkoutSet } from '@/lib/types';
+import type { ExerciseWithUserData, WorkoutSet } from '@/lib/types';
 import { ChevronRight, Plus, Pin, StickyNote } from 'lucide-react';
 import { getPrimaryMuscleGroup, getMuscleGroups } from '@/lib/muscle-utils';
 
 interface CardioExerciseCardProps {
-  exercise: Exercise;
+  exercise: ExerciseWithUserData;
   lastSet: WorkoutSet | null;
   bestDistance: number | null;
   lastSessionNotes: string | null;

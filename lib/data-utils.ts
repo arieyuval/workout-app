@@ -203,23 +203,33 @@ export async function getExercise(exerciseId: string) {
 }
 
 /**
- * Update an exercise's default PR reps
+ * Update a user's default PR reps for an exercise
  * @param exerciseId - The ID of the exercise
- * @param defaultPrReps - The new default PR rep count
+ * @param userPrReps - The new user PR rep count
  */
 export async function updateExerciseDefaultPrReps(
   exerciseId: string,
-  defaultPrReps: number
+  userPrReps: number
 ) {
-  const { data, error } = await supabase
-    .from('exercises')
-    .update({ default_pr_reps: defaultPrReps })
-    .eq('id', exerciseId)
+  const supabaseServer = await createServerSupabaseClient();
+
+  // Get current user
+  const { data: { user } } = await supabaseServer.auth.getUser();
+  if (!user) {
+    console.error('No user found');
+    return null;
+  }
+
+  const { data, error } = await supabaseServer
+    .from('user_exercises')
+    .update({ user_pr_reps: userPrReps })
+    .eq('exercise_id', exerciseId)
+    .eq('user_id', user.id)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating exercise:', error);
+    console.error('Error updating user exercise user_pr_reps:', error);
     return null;
   }
 
@@ -227,7 +237,7 @@ export async function updateExerciseDefaultPrReps(
 }
 
 /**
- * Update an exercise's pinned note
+ * Update a user's pinned note for an exercise
  * @param exerciseId - The ID of the exercise
  * @param pinnedNote - The new pinned note (or null to clear)
  */
@@ -235,15 +245,25 @@ export async function updateExercisePinnedNote(
   exerciseId: string,
   pinnedNote: string | null
 ) {
-  const { data, error } = await supabase
-    .from('exercises')
+  const supabaseServer = await createServerSupabaseClient();
+
+  // Get current user
+  const { data: { user } } = await supabaseServer.auth.getUser();
+  if (!user) {
+    console.error('No user found');
+    return null;
+  }
+
+  const { data, error } = await supabaseServer
+    .from('user_exercises')
     .update({ pinned_note: pinnedNote })
-    .eq('id', exerciseId)
+    .eq('exercise_id', exerciseId)
+    .eq('user_id', user.id)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating exercise pinned note:', error);
+    console.error('Error updating user exercise pinned note:', error);
     return null;
   }
 
@@ -259,15 +279,25 @@ export async function updateExerciseGoalWeight(
   exerciseId: string,
   goalWeight: number | null
 ) {
-  const { data, error } = await supabase
-    .from('exercises')
+  const supabaseServer = await createServerSupabaseClient();
+
+  // Get current user
+  const { data: { user } } = await supabaseServer.auth.getUser();
+  if (!user) {
+    console.error('No user found');
+    return null;
+  }
+
+  const { data, error } = await supabaseServer
+    .from('user_exercises')
     .update({ goal_weight: goalWeight })
-    .eq('id', exerciseId)
+    .eq('exercise_id', exerciseId)
+    .eq('user_id', user.id)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating exercise goal weight:', error);
+    console.error('Error updating user exercise goal weight:', error);
     return null;
   }
 
@@ -275,7 +305,7 @@ export async function updateExerciseGoalWeight(
 }
 
 /**
- * Update an exercise's goal reps (for body weight exercises)
+ * Update a user's goal reps for an exercise (for body weight exercises)
  * @param exerciseId - The ID of the exercise
  * @param goalReps - The new goal reps (or null to clear)
  */
@@ -283,15 +313,25 @@ export async function updateExerciseGoalReps(
   exerciseId: string,
   goalReps: number | null
 ) {
-  const { data, error } = await supabase
-    .from('exercises')
+  const supabaseServer = await createServerSupabaseClient();
+
+  // Get current user
+  const { data: { user } } = await supabaseServer.auth.getUser();
+  if (!user) {
+    console.error('No user found');
+    return null;
+  }
+
+  const { data, error } = await supabaseServer
+    .from('user_exercises')
     .update({ goal_reps: goalReps })
-    .eq('id', exerciseId)
+    .eq('exercise_id', exerciseId)
+    .eq('user_id', user.id)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating exercise goal reps:', error);
+    console.error('Error updating user exercise goal reps:', error);
     return null;
   }
 

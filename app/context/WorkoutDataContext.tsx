@@ -1,11 +1,11 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
-import type { Exercise, WorkoutSet, PersonalRecord } from '@/lib/types';
+import type { ExerciseWithUserData, WorkoutSet, PersonalRecord } from '@/lib/types';
 
 interface WorkoutDataContextType {
   // State
-  exercises: Exercise[];
+  exercises: ExerciseWithUserData[];
   sets: Record<string, WorkoutSet[]>;
   loading: boolean;
   lastFetched: number | null;
@@ -13,10 +13,10 @@ interface WorkoutDataContextType {
   // Actions
   fetchAllData: (force?: boolean) => Promise<void>;
   refreshExerciseSets: (exerciseId: string) => Promise<void>;
-  addExercise: (exercise: Exercise) => void;
+  addExercise: (exercise: ExerciseWithUserData) => void;
 
   // Helper functions for derived data
-  getExerciseById: (exerciseId: string) => Exercise | undefined;
+  getExerciseById: (exerciseId: string) => ExerciseWithUserData | undefined;
   getExerciseSets: (exerciseId: string) => WorkoutSet[];
   getTopSetLastSession: (exerciseId: string) => WorkoutSet | null;
   getLastSet: (exerciseId: string) => WorkoutSet | null;
@@ -32,7 +32,7 @@ const STALE_THRESHOLD_MS = 30 * 1000; // 30 seconds
 const WorkoutDataContext = createContext<WorkoutDataContextType | null>(null);
 
 export function WorkoutDataProvider({ children }: { children: ReactNode }) {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState<ExerciseWithUserData[]>([]);
   const [sets, setSets] = useState<Record<string, WorkoutSet[]>>({});
   const [loading, setLoading] = useState(true);
   const [lastFetched, setLastFetched] = useState<number | null>(null);
@@ -61,7 +61,7 @@ export function WorkoutDataProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (exercisesResponse.ok) {
-        const exercisesData: Exercise[] = await exercisesResponse.json();
+        const exercisesData: ExerciseWithUserData[] = await exercisesResponse.json();
         setExercises(exercisesData);
       }
 
@@ -96,7 +96,7 @@ export function WorkoutDataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const addExercise = useCallback((exercise: Exercise) => {
+  const addExercise = useCallback((exercise: ExerciseWithUserData) => {
     setExercises((prev) => [...prev, exercise]);
     setSets((prev) => ({ ...prev, [exercise.id]: [] }));
   }, []);
@@ -165,7 +165,7 @@ export function WorkoutDataProvider({ children }: { children: ReactNode }) {
   }, [sets]);
 
   // Helper: Get exercise by ID
-  const getExerciseById = useCallback((exerciseId: string): Exercise | undefined => {
+  const getExerciseById = useCallback((exerciseId: string): ExerciseWithUserData | undefined => {
     return exercises.find((e) => e.id === exerciseId);
   }, [exercises]);
 

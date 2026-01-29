@@ -173,7 +173,7 @@ export default function Home() {
                     exercise={exercise}
                     topSetLastSession={getTopSetLastSession(exercise.id)}
                     lastSet={getLastSet(exercise.id)}
-                    currentMax={getCurrentMax(exercise.id, exercise.default_pr_reps)}
+                    currentMax={getCurrentMax(exercise.id, exercise.user_pr_reps)}
                     lastSessionNotes={getLastSessionNotes(exercise.id)}
                     onSetLogged={() => handleSetLogged(exercise.id)}
                   />
