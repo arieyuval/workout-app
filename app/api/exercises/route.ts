@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, getUser } from '@/lib/supabase-server';
-import type { Exercise, ExerciseInsert } from '@/lib/types';
+import type { Exercise, ExerciseInsert, MuscleGroup } from '@/lib/types';
+import { exerciseMatchesMuscleTab } from '@/lib/muscle-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,9 +21,8 @@ export async function GET(request: NextRequest) {
       .eq('is_base', true)
       .order('name');
 
-    if (muscleGroup && muscleGroup !== 'All') {
-      baseQuery = baseQuery.eq('muscle_group', muscleGroup);
-    }
+    // Note: muscle_group filtering is done client-side to handle both string and array formats
+    // Database queries don't support checking if a value is in a JSONB array easily
 
     const { data: baseExercises, error: baseError } = await baseQuery;
 
@@ -50,21 +50,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Extract user exercises and filter by muscle group if needed
+    // Extract user exercises
     let userExercises: Exercise[] = (userExerciseLinks || [])
       .map((link) => link.exercises as unknown as Exercise | null)
       .filter((ex): ex is Exercise => ex !== null);
-
-    if (muscleGroup && muscleGroup !== 'All') {
-      userExercises = userExercises.filter((ex) => ex.muscle_group === muscleGroup);
-    }
 
     // Combine base and user exercises, removing duplicates (user exercises override base)
     const baseIds = new Set((baseExercises || []).map((ex) => ex.id));
     const uniqueUserExercises = userExercises.filter((ex) => !baseIds.has(ex.id));
 
-    const allExercises = [...(baseExercises || []), ...uniqueUserExercises]
+    let allExercises = [...(baseExercises || []), ...uniqueUserExercises]
       .sort((a, b) => a.name.localeCompare(b.name));
+
+    // Filter by muscle group client-side to handle both string and array formats
+    if (muscleGroup && muscleGroup !== 'All') {
+      allExercises = allExercises.filter((ex) =>
+        exerciseMatchesMuscleTab(ex, muscleGroup as MuscleGroup)
+      );
+    }
 
     return NextResponse.json(allExercises);
   } catch (error) {
@@ -88,17 +91,37 @@ export async function POST(request: NextRequest) {
     console.log('Adding exercise for user:', user.id, 'with data:', body);
 
     // Check if an exercise with the same name and muscle group already exists
-    const { data: existingExercise, error: searchError } = await supabase
+    // First get all exercises with the same name (case-insensitive)
+    const { data: exercisesWithSameName, error: searchError } = await supabase
       .from('exercises')
       .select('*')
-      .ilike('name', body.name.trim())
-      .eq('muscle_group', body.muscle_group)
-      .single();
+      .ilike('name', body.name.trim());
 
-    if (searchError && searchError.code !== 'PGRST116') {
-      // PGRST116 = no rows found, which is fine
+    if (searchError) {
       console.error('Error searching for existing exercise:', searchError);
     }
+
+    // Find exact match by comparing muscle_group (handles both string and array)
+    const existingExercise = exercisesWithSameName?.find((ex) => {
+      const exMuscleGroup = ex.muscle_group;
+      const bodyMuscleGroup = body.muscle_group;
+
+      // Both are arrays - compare as sorted arrays
+      if (Array.isArray(exMuscleGroup) && Array.isArray(bodyMuscleGroup)) {
+        const sorted1 = [...exMuscleGroup].sort();
+        const sorted2 = [...bodyMuscleGroup].sort();
+        return sorted1.length === sorted2.length &&
+               sorted1.every((val, idx) => val === sorted2[idx]);
+      }
+
+      // Both are strings - simple equality
+      if (typeof exMuscleGroup === 'string' && typeof bodyMuscleGroup === 'string') {
+        return exMuscleGroup === bodyMuscleGroup;
+      }
+
+      // One is array, one is string - not a match
+      return false;
+    });
 
     let exerciseToAdd;
 
