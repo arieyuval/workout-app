@@ -4,12 +4,13 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ChevronDown, ChevronRight, Pencil, Check, X, Trash2 } from 'lucide-react';
 import NavBar from '../components/NavBar';
-import type { WorkoutSet } from '@/lib/types';
+import type { WorkoutSet, MuscleGroup } from '@/lib/types';
 import { useWorkoutData } from '../context/WorkoutDataContext';
+import { getPrimaryMuscleGroup } from '@/lib/muscle-utils';
 
 interface SetWithExercise extends WorkoutSet {
   exercise_name?: string;
-  muscle_group?: string;
+  muscle_group?: MuscleGroup | MuscleGroup[];
   exercise_type?: string;
   uses_body_weight?: boolean;
 }
@@ -63,11 +64,15 @@ const formatDisplayDate = (date: Date, timezone: string) => {
 };
 
 // Normalize muscle group to parent category (Biceps/Triceps -> Arms)
-const normalizeMuscleGroup = (muscleGroup: string): string => {
-  if (muscleGroup === 'Biceps' || muscleGroup === 'Triceps') {
+// Handles both string and array formats (uses primary/first muscle if array)
+const normalizeMuscleGroup = (muscleGroup: MuscleGroup | MuscleGroup[] | string): string => {
+  // Get the primary muscle group if it's an array
+  const primaryMuscle = Array.isArray(muscleGroup) ? muscleGroup[0] : muscleGroup;
+
+  if (primaryMuscle === 'Biceps' || primaryMuscle === 'Triceps') {
     return 'Arms';
   }
-  return muscleGroup;
+  return primaryMuscle;
 };
 
 // Get workout label based on muscle groups in the workout
@@ -79,9 +84,11 @@ const getWorkoutLabel = (exercises: ExerciseGroup[]): string => {
   exercises.forEach(ex => {
     const rawGroup = ex.topSet.muscle_group || '';
     const normalizedGroup = normalizeMuscleGroup(rawGroup);
+    // Convert to string for Set (use primary muscle if array)
+    const rawGroupStr = Array.isArray(rawGroup) ? rawGroup[0] : rawGroup;
     if (normalizedGroup && normalizedGroup !== 'Cardio') {
       muscleGroups.add(normalizedGroup);
-      rawMuscleGroups.add(rawGroup);
+      rawMuscleGroups.add(rawGroupStr);
     }
   });
 
