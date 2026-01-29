@@ -6,7 +6,7 @@ export type ExerciseType = 'strength' | 'cardio';
 export interface Exercise {
   id: string;
   name: string;
-  muscle_group: MuscleGroup;
+  muscle_group: MuscleGroup | MuscleGroup[]; // Supports both single value (string) and multiple values (array) for backward compatibility
   exercise_type: ExerciseType;
   default_pr_reps: number; // default rep count for PR display (only for strength exercises)
   is_base: boolean; // true for base exercises shown to all users, false for user-created

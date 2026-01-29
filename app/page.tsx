@@ -11,6 +11,7 @@ import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import { useWorkoutData } from './context/WorkoutDataContext';
 import type { MuscleGroup } from '@/lib/types';
+import { exerciseMatchesMuscleTab, getMuscleGroups } from '@/lib/muscle-utils';
 
 export default function Home() {
   const {
@@ -70,13 +71,16 @@ export default function Home() {
   const filteredExercises = useMemo(() => {
     return exercises
       .filter((exercise) => {
-        const matchesTab = activeTab === 'All' ||
-          exercise.muscle_group === activeTab ||
-          (activeTab === 'Arms' && (exercise.muscle_group === 'Biceps' || exercise.muscle_group === 'Triceps'));
+        // Use utility function for muscle group matching
+        const matchesTab = exerciseMatchesMuscleTab(exercise, activeTab);
+
         const matchesSearch =
           searchQuery === '' ||
           exercise.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          exercise.muscle_group.toLowerCase().includes(searchQuery.toLowerCase());
+          // Also search in all muscle groups for multi-muscle exercises
+          getMuscleGroups(exercise).some(mg =>
+            mg.toLowerCase().includes(searchQuery.toLowerCase())
+          );
         return matchesTab && matchesSearch;
       })
       .sort((a, b) => {

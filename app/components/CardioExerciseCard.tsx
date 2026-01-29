@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { Exercise, WorkoutSet } from '@/lib/types';
 import { ChevronRight, Plus, Pin, StickyNote } from 'lucide-react';
+import { getPrimaryMuscleGroup, getMuscleGroups } from '@/lib/muscle-utils';
 
 interface CardioExerciseCardProps {
   exercise: Exercise;
@@ -13,6 +14,21 @@ interface CardioExerciseCardProps {
   onSetLogged?: () => void;
 }
 
+// Text colors for each muscle group label
+const getMuscleGroupTextColor = (muscleGroup: string) => {
+  const colors: Record<string, string> = {
+    Chest: 'text-rose-700 dark:text-rose-300',
+    Back: 'text-blue-600 dark:text-blue-400',
+    Legs: 'text-green-700 dark:text-green-300',
+    Shoulders: 'text-amber-700 dark:text-amber-300',
+    Arms: 'text-purple-600 dark:text-purple-400',
+    Biceps: 'text-violet-600 dark:text-violet-400',
+    Triceps: 'text-fuchsia-600 dark:text-fuchsia-400',
+    Core: 'text-yellow-700 dark:text-yellow-300',
+    Cardio: 'text-teal-600 dark:text-teal-400',
+  };
+  return colors[muscleGroup] || 'text-gray-600 dark:text-gray-400';
+};
 
 // Get user's timezone or default to PST
 const getUserTimezone = () => {
@@ -111,10 +127,17 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, la
             <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
           </div>
 
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs sm:text-sm font-medium text-teal-600 dark:text-teal-400">
-              {exercise.muscle_group}
-            </span>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            {getMuscleGroups(exercise).map((mg, index) => (
+              <span
+                key={mg}
+                className={`text-xs sm:text-sm font-medium ${
+                  index === 0 ? getMuscleGroupTextColor(mg) : 'text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                {mg}{index < getMuscleGroups(exercise).length - 1 ? ' •' : ''}
+              </span>
+            ))}
             {(exercise.pinned_note || lastSessionNotes) && (
               <span className={`text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded flex items-center gap-1 ${exercise.pinned_note ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 font-medium' : 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400'}`}>
                 {exercise.pinned_note ? <Pin className="w-2.5 h-2.5 flex-shrink-0" /> : <StickyNote className="w-2.5 h-2.5 flex-shrink-0" />}

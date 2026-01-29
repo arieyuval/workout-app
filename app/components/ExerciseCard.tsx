@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { Exercise, WorkoutSet } from '@/lib/types';
 import { ChevronRight, Plus, Pin, StickyNote, Target } from 'lucide-react';
+import { getPrimaryMuscleGroup, getMuscleGroups } from '@/lib/muscle-utils';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -131,8 +132,9 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
     }
   };
 
-  const muscleGroupColor = getMuscleGroupTextColor(exercise.muscle_group);
-  const prColors = getMuscleGroupPRColors(exercise.muscle_group);
+  const primaryMuscle = getPrimaryMuscleGroup(exercise);
+  const muscleGroupColor = getMuscleGroupTextColor(primaryMuscle);
+  const prColors = getMuscleGroupPRColors(primaryMuscle);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -173,10 +175,17 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mb-1">
-            <span className={`text-xs sm:text-sm font-medium ${muscleGroupColor}`}>
-              {exercise.muscle_group}
-            </span>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            {getMuscleGroups(exercise).map((mg, index) => (
+              <span
+                key={mg}
+                className={`text-xs sm:text-sm font-medium ${
+                  index === 0 ? getMuscleGroupTextColor(mg) : 'text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                {mg}{index < getMuscleGroups(exercise).length - 1 ? ' •' : ''}
+              </span>
+            ))}
             {(exercise.pinned_note || lastSessionNotes) && (
               <span className={`text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded flex items-center gap-1 ${exercise.pinned_note ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 font-medium' : `${prColors.bg} ${prColors.text}`}`}>
                 {exercise.pinned_note ? <Pin className="w-2.5 h-2.5 flex-shrink-0" /> : <StickyNote className="w-2.5 h-2.5 flex-shrink-0" />}

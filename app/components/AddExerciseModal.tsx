@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Plus } from 'lucide-react';
 import type { MuscleGroup, ExerciseType, Exercise } from '@/lib/types';
+import { getMuscleGroups } from '@/lib/muscle-utils';
 
 interface AddExerciseModalProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ const getMuscleGroupColor = (muscleGroup: string): string => {
 export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: AddExerciseModalProps) {
   const [exerciseName, setExerciseName] = useState('');
   const [exerciseType, setExerciseType] = useState<ExerciseType>('strength');
-  const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>('Chest');
+  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<MuscleGroup[]>(['Chest']);
   const [defaultPrReps, setDefaultPrReps] = useState<number | ''>('');
   // Strength PR fields
   const [prWeight, setPrWeight] = useState<number | ''>('');
@@ -76,10 +77,13 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
     if (exerciseName.trim().length >= 1) {
       const searchTerm = exerciseName.toLowerCase().trim();
       const filtered = allExercises
-        .filter((ex) =>
-          ex.name.toLowerCase().includes(searchTerm) ||
-          ex.muscle_group.toLowerCase().includes(searchTerm)
-        )
+        .filter((ex) => {
+          const nameMatches = ex.name.toLowerCase().includes(searchTerm);
+          const muscleGroupMatches = Array.isArray(ex.muscle_group)
+            ? ex.muscle_group.some(mg => mg.toLowerCase().includes(searchTerm))
+            : ex.muscle_group.toLowerCase().includes(searchTerm);
+          return nameMatches || muscleGroupMatches;
+        })
         .slice(0, 6); // Limit to 6 suggestions
       setSuggestions(filtered);
       setShowSuggestions(filtered.length > 0);
@@ -112,7 +116,11 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
     setExerciseName(exercise.name);
     setExerciseType(exercise.exercise_type);
     if (exercise.exercise_type === 'strength') {
-      setMuscleGroup(exercise.muscle_group as MuscleGroup);
+      // Convert muscle_group to array format
+      const groups = Array.isArray(exercise.muscle_group)
+        ? exercise.muscle_group
+        : [exercise.muscle_group];
+      setSelectedMuscleGroups(groups);
       setDefaultPrReps(exercise.default_pr_reps);
       setUsesBodyWeight(exercise.uses_body_weight ?? false);
     }
@@ -152,6 +160,12 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
 
     // Validate based on exercise type
     if (exerciseType === 'strength') {
+      // Validate that at least one muscle group is selected
+      if (selectedMuscleGroups.length === 0) {
+        setError('Please select at least one muscle group');
+        return;
+      }
+
       // Validate defaultPrReps only if provided (optional field, defaults to 3)
       if (defaultPrReps !== '' && (defaultPrReps < 1 || defaultPrReps > 50)) {
         setError('Default PR reps must be between 1 and 50');
@@ -180,7 +194,11 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: exerciseName.trim(),
-          muscle_group: exerciseType === 'cardio' ? 'Cardio' : muscleGroup,
+          muscle_group: exerciseType === 'cardio'
+            ? 'Cardio'
+            : selectedMuscleGroups.length === 1
+              ? selectedMuscleGroups[0]  // Store as string if single value
+              : selectedMuscleGroups,    // Store as array if multiple
           exercise_type: exerciseType,
           default_pr_reps: exerciseType === 'strength' ? (defaultPrReps || 3) : 1, // Default to 3 for strength, 1 for cardio
           uses_body_weight: exerciseType === 'strength' ? usesBodyWeight : false,
@@ -231,7 +249,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
       // Reset form
       setExerciseName('');
       setExerciseType('strength');
-      setMuscleGroup('Chest');
+      setSelectedMuscleGroups(['Chest']);
       setDefaultPrReps('');
       setUsesBodyWeight(false);
       setPrWeight('');
@@ -258,7 +276,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
     if (!isSubmitting) {
       setExerciseName('');
       setExerciseType('strength');
-      setMuscleGroup('Chest');
+      setSelectedMuscleGroups(['Chest']);
       setDefaultPrReps('');
       setUsesBodyWeight(false);
       setPrWeight('');
@@ -329,9 +347,13 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
                     <span className="text-sm text-gray-900 dark:text-white font-medium">
                       {exercise.name}
                     </span>
-                    <span className={`text-xs ${getMuscleGroupColor(exercise.muscle_group)}`}>
-                      {exercise.muscle_group}
-                    </span>
+                    <div className="flex items-center gap-1 flex-wrap justify-end">
+                      {getMuscleGroups(exercise).map((mg, idx) => (
+                        <span key={idx} className={`text-xs ${getMuscleGroupColor(mg)}`}>
+                          {mg}{idx < getMuscleGroups(exercise).length - 1 ? ',' : ''}
+                        </span>
+                      ))}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -360,23 +382,36 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
           {exerciseType === 'strength' && (
             <>
               <div>
-                <label htmlFor="muscle-group" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Muscle Group *
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Muscle Groups * <span className="text-xs text-gray-500">(Select one or more)</span>
                 </label>
-                <select
-                  id="muscle-group"
-                  value={muscleGroup}
-                  onChange={(e) => setMuscleGroup(e.target.value as MuscleGroup)}
-                  disabled={isSubmitting}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm sm:text-base"
-                  required
-                >
-                  {strengthMuscleGroups.map((group: MuscleGroup) => (
-                    <option key={group} value={group}>
-                      {group}
-                    </option>
+                <div className="grid grid-cols-2 gap-2">
+                  {strengthMuscleGroups.map((group) => (
+                    <label
+                      key={group}
+                      className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors ${
+                        selectedMuscleGroups.includes(group)
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedMuscleGroups.includes(group)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedMuscleGroups([...selectedMuscleGroups, group]);
+                          } else {
+                            setSelectedMuscleGroups(selectedMuscleGroups.filter(g => g !== group));
+                          }
+                        }}
+                        disabled={isSubmitting}
+                        className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-900 dark:text-white">{group}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
               </div>
 
               {/* Default PR Reps */}
