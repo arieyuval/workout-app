@@ -32,7 +32,7 @@ const getMuscleGroupColor = (muscleGroup: string): string => {
 export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: AddExerciseModalProps) {
   const [exerciseName, setExerciseName] = useState('');
   const [exerciseType, setExerciseType] = useState<ExerciseType>('strength');
-  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<MuscleGroup[]>(['Chest']);
+  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<MuscleGroup[]>([]);
   const [userPrReps, setDefaultPrReps] = useState<number | ''>('');
   // Strength PR fields
   const [prWeight, setPrWeight] = useState<number | ''>('');
@@ -117,11 +117,9 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
     setExerciseType(exercise.exercise_type);
     if (exercise.exercise_type === 'strength') {
       // Convert muscle_group to array format
-      const groups = Array.isArray(exercise.muscle_group)
-        ? exercise.muscle_group
-        : [exercise.muscle_group];
-      setSelectedMuscleGroups(groups);
-      setUserPrReps(exercise.user_pr_reps || 3);
+      const groups = getMuscleGroups(exercise);
+      setSelectedMuscleGroups(groups as MuscleGroup[]);
+      setDefaultPrReps(exercise.user_pr_reps || 3);
       setUsesBodyWeight(exercise.uses_body_weight ?? false);
     }
     setShowSuggestions(false);
@@ -249,7 +247,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
       // Reset form
       setExerciseName('');
       setExerciseType('strength');
-      setSelectedMuscleGroups(['Chest']);
+      setSelectedMuscleGroups([]);
       setDefaultPrReps('');
       setUsesBodyWeight(false);
       setPrWeight('');
@@ -276,7 +274,7 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
     if (!isSubmitting) {
       setExerciseName('');
       setExerciseType('strength');
-      setSelectedMuscleGroups(['Chest']);
+      setSelectedMuscleGroups([]);
       setDefaultPrReps('');
       setUsesBodyWeight(false);
       setPrWeight('');
@@ -385,31 +383,27 @@ export default function AddExerciseModal({ isOpen, onClose, onExerciseAdded }: A
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Muscle Groups * <span className="text-xs text-gray-500">(Select one or more)</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-wrap gap-2">
                   {strengthMuscleGroups.map((group) => (
-                    <label
+                    <button
                       key={group}
-                      className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors ${
+                      type="button"
+                      onClick={() => {
+                        if (selectedMuscleGroups.includes(group)) {
+                          setSelectedMuscleGroups(selectedMuscleGroups.filter(g => g !== group));
+                        } else {
+                          setSelectedMuscleGroups([...selectedMuscleGroups, group]);
+                        }
+                      }}
+                      disabled={isSubmitting}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                         selectedMuscleGroups.includes(group)
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedMuscleGroups.includes(group)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedMuscleGroups([...selectedMuscleGroups, group]);
-                          } else {
-                            setSelectedMuscleGroups(selectedMuscleGroups.filter(g => g !== group));
-                          }
-                        }}
-                        disabled={isSubmitting}
-                        className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-900 dark:text-white">{group}</span>
-                    </label>
+                      {group}
+                    </button>
                   ))}
                 </div>
               </div>

@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight, Pencil, Check, X, Trash2 } from 'lucide-react';
 import type { WorkoutSet } from '@/lib/types';
+import TimeInput from './TimeInput';
+import { formatMinutesToTime } from '@/lib/time-utils';
 
 interface CardioHistoryTableProps {
   sets: WorkoutSet[];
@@ -192,14 +194,12 @@ export default function CardioHistoryTable({ sets, onSetUpdated, onSetDeleted }:
             <span className="text-xs text-gray-400">mi</span>
           </div>
           <div className="flex items-center gap-1">
-            <input
-              type="number"
+            <TimeInput
               value={editDuration}
-              onChange={(e) => setEditDuration(parseInt(e.target.value) || 0)}
-              className="w-14 px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
-              placeholder="min"
+              onChange={setEditDuration}
+              placeholder="Time"
+              className="w-20 px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
             />
-            <span className="text-xs text-gray-400">min</span>
           </div>
           <button
             onClick={saveEdit}
@@ -225,7 +225,7 @@ export default function CardioHistoryTable({ sets, onSetUpdated, onSetDeleted }:
             {set.distance} mi
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            {set.duration} min
+            {formatMinutesToTime(set.duration || 0)}
           </div>
         </div>
         <div className="text-right min-w-[70px]">

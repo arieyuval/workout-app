@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
+import TimeInput from './TimeInput';
 
 interface CardioSetLogFormProps {
   exerciseId: string;
@@ -129,18 +130,15 @@ export default function CardioSetLogForm({ exerciseId, lastSet, onSetLogged }: C
           {/* Duration Input */}
           <div>
             <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Duration (min)
+              Duration
             </label>
-            <input
+            <TimeInput
               id="duration"
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={duration || ''}
-              onChange={(e) => setDuration(parseFloat(e.target.value) || 0)}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base touch-manipulation"
+              value={duration}
+              onChange={setDuration}
+              placeholder="e.g., 2345"
               disabled={isSubmitting}
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base touch-manipulation"
             />
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import type { WorkoutSet } from '@/lib/types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
+import { formatMinutesToTime } from '@/lib/time-utils';
 
 interface CardioPaceChartProps {
   sets: WorkoutSet[];
@@ -86,7 +87,7 @@ export default function CardioPaceChart({ sets }: CardioPaceChartProps) {
             labelFormatter={(label, payload) => {
               if (payload && payload.length > 0) {
                 const data = payload[0].payload;
-                return `${data.fullDate} - ${data.distance} mi in ${data.duration} min`;
+                return `${data.fullDate} - ${data.distance} mi in ${formatMinutesToTime(data.duration)}`;
               }
               return label;
             }}

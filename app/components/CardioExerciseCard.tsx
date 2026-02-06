@@ -5,6 +5,8 @@ import Link from 'next/link';
 import type { ExerciseWithUserData, WorkoutSet } from '@/lib/types';
 import { ChevronRight, Plus, Pin, StickyNote } from 'lucide-react';
 import { getPrimaryMuscleGroup, getMuscleGroups } from '@/lib/muscle-utils';
+import TimeInput from './TimeInput';
+import { formatMinutesToTime } from '@/lib/time-utils';
 
 interface CardioExerciseCardProps {
   exercise: ExerciseWithUserData;
@@ -158,7 +160,7 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, la
             </div>
             {lastSet ? (
               <div className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
-                {lastSet.distance} mi / {lastSet.duration} min
+                {lastSet.distance} mi / {formatMinutesToTime(lastSet.duration)}
               </div>
             ) : (
               <div className="text-sm text-gray-400">-</div>
@@ -198,13 +200,11 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, la
             onClick={(e) => e.stopPropagation()}
           />
           <span className="flex items-center text-gray-400 text-sm">/</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            placeholder="Min"
-            value={duration || ''}
-            onChange={(e) => setDuration(parseFloat(e.target.value) || 0)}
+          <TimeInput
+            value={duration}
+            onChange={setDuration}
+            placeholder="Time"
+            disabled={isSubmitting}
             className="w-20 sm:w-24 px-2 py-2 text-sm sm:text-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
             onClick={(e) => e.stopPropagation()}
           />

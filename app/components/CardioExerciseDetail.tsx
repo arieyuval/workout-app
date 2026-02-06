@@ -9,6 +9,7 @@ import CardioHistoryTable from './CardioHistoryTable';
 import CardioPRList from './CardioPRList';
 import CardioPaceChart from './CardioPaceChart';
 import { useWorkoutData } from '../context/WorkoutDataContext';
+import { formatMinutesToTime } from '@/lib/time-utils';
 
 interface CardioExerciseDetailProps {
   exercise: ExerciseWithUserData;
@@ -207,7 +208,7 @@ export default function CardioExerciseDetail({
           {lastSet && lastSet.distance && lastSet.duration ? (
             <div>
               <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {lastSet.distance} mi in {lastSet.duration} min
+                {lastSet.distance} mi in {formatMinutesToTime(lastSet.duration)}
               </div>
               <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                 {format(new Date(lastSet.date), 'MMMM d, yyyy')}
@@ -254,7 +255,7 @@ export default function CardioExerciseDetail({
             Total Time
           </div>
           <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-            {totalDuration.toFixed(0)} min
+            {formatMinutesToTime(totalDuration)}
           </div>
         </div>
 
