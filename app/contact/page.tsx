@@ -23,6 +23,9 @@ export default function ContactPage() {
 
     setIsSubmitting(true);
 
+    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+    const platform = isAndroid ? 'Android' : 'Web';
+
     try {
       const response = await fetch('/api/contact', {
         method: 'POST',
@@ -30,7 +33,7 @@ export default function ContactPage() {
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
-          message: message.trim(),
+          message: `Platform: ${platform}\n\n${message.trim()}`,
         }),
       });
 
