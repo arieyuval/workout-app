@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { ExerciseWithUserData, WorkoutSet } from '@/lib/types';
 import { ChevronRight, Plus, Pin, StickyNote, Target } from 'lucide-react';
 import { getPrimaryMuscleGroup, getMuscleGroups } from '@/lib/muscle-utils';
+import { useWorkoutData } from '../context/WorkoutDataContext';
 
 interface ExerciseCardProps {
   exercise: ExerciseWithUserData;
@@ -86,6 +87,53 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
   const [reps, setReps] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const { getExerciseSets } = useWorkoutData();
+
+  const primaryMuscle = getPrimaryMuscleGroup(exercise);
+  const muscleGroupColor = getMuscleGroupTextColor(primaryMuscle);
+  const prColors = getMuscleGroupPRColors(primaryMuscle);
+
+  // Calculate PR for display based on new requirements
+  const sets = getExerciseSets(exercise.id);
+  let prLabel = 'PR';
+  let prDisplay = <div className="text-xs sm:text-sm text-gray-400">-</div>;
+
+  if (exercise.uses_body_weight) {
+    prLabel = 'PR';
+    // For body weight: Show the most reps ever done
+    const maxRepsSet = sets.reduce((best, current) => {
+      return (current.reps || 0) > (best?.reps || 0) ? current : best;
+    }, null as WorkoutSet | null);
+
+    if (maxRepsSet && maxRepsSet.reps) {
+      prDisplay = (
+        <div className={`text-xs sm:text-sm font-bold ${prColors.text}`}>
+          {maxRepsSet.reps} reps
+        </div>
+      );
+    }
+  } else {
+    prLabel = 'PR';
+    // For strength: Show top set ever (highest weight)
+    const maxWeightSet = sets.reduce((best, current) => {
+      const currentWeight = current.weight || 0;
+      const bestWeight = best?.weight || 0;
+      
+      if (currentWeight > bestWeight) return current;
+      if (currentWeight === bestWeight) {
+        return (current.reps || 0) > (best?.reps || 0) ? current : best;
+      }
+      return best;
+    }, null as WorkoutSet | null);
+
+    if (maxWeightSet && maxWeightSet.weight) {
+      prDisplay = (
+        <div className={`text-xs sm:text-sm font-bold ${prColors.text}`}>
+          {formatWeight(maxWeightSet.weight, false)} × {maxWeightSet.reps}
+        </div>
+      );
+    }
+  }
 
   const handleQuickLog = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,10 +179,6 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
       setIsSubmitting(false);
     }
   };
-
-  const primaryMuscle = getPrimaryMuscleGroup(exercise);
-  const muscleGroupColor = getMuscleGroupTextColor(primaryMuscle);
-  const prColors = getMuscleGroupPRColors(primaryMuscle);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -230,15 +274,9 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
           {/* PR */}
           <div className={`${prColors.bg} p-2 sm:p-3 rounded-md`}>
             <div className={`text-[9px] sm:text-[10px] ${prColors.text} mb-1 font-medium`}>
-              {exercise.user_pr_reps}RM PR
+              {prLabel}
             </div>
-            {currentMax !== null ? (
-              <div className={`text-xs sm:text-sm font-bold ${prColors.text}`}>
-                {formatWeight(currentMax, exercise.uses_body_weight)} lbs
-              </div>
-            ) : (
-              <div className="text-xs sm:text-sm text-gray-400">-</div>
-            )}
+            {prDisplay}
           </div>
         </div>
       </div>
