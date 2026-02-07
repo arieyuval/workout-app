@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User, Bug } from 'lucide-react';
+import Link from 'next/link';
+import { LogOut, User, Bug, Mail } from 'lucide-react';
 import BugReportModal from './BugReportModal';
 
 export default function UserMenu() {
@@ -54,6 +55,14 @@ export default function UserMenu() {
               <Bug className="w-4 h-4" />
               Report a Bug
             </button>
+            <Link
+              href="/contact"
+              onClick={() => setIsOpen(false)}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+              Contact
+            </Link>
             <button
               onClick={handleSignOut}
               className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
