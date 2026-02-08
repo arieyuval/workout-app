@@ -35,6 +35,25 @@ CREATE TABLE IF NOT EXISTS sets (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Create workouts table (user-defined exercise groupings)
+CREATE TABLE IF NOT EXISTS workouts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create workout_exercises junction table (exercises assigned to workouts)
+CREATE TABLE IF NOT EXISTS workout_exercises (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  workout_id UUID NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
+  exercise_id UUID NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(workout_id, exercise_id)
+);
+
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_sets_exercise_id ON sets(exercise_id);
 CREATE INDEX IF NOT EXISTS idx_sets_date ON sets(date DESC);
@@ -42,6 +61,8 @@ CREATE INDEX IF NOT EXISTS idx_exercises_muscle_group ON exercises(muscle_group)
 CREATE INDEX IF NOT EXISTS idx_exercises_is_base ON exercises(is_base);
 CREATE INDEX IF NOT EXISTS idx_user_exercises_user_id ON user_exercises(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_exercises_exercise_id ON user_exercises(exercise_id);
+CREATE INDEX IF NOT EXISTS idx_workouts_user_id ON workouts(user_id);
+CREATE INDEX IF NOT EXISTS idx_workout_exercises_workout_id ON workout_exercises(workout_id);
 
 -- Insert base exercises (shown to all users)
 INSERT INTO exercises (name, muscle_group, exercise_type, default_pr_reps, is_base) VALUES

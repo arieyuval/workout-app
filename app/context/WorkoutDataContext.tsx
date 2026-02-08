@@ -1,19 +1,22 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
-import type { ExerciseWithUserData, WorkoutSet, PersonalRecord } from '@/lib/types';
+import { createContext, useContext, useState, useCallback, useRef, useMemo, ReactNode } from 'react';
+import type { ExerciseWithUserData, WorkoutSet, PersonalRecord, WorkoutWithExercises } from '@/lib/types';
 
 interface WorkoutDataContextType {
   // State
   exercises: ExerciseWithUserData[];
   sets: Record<string, WorkoutSet[]>;
+  workouts: WorkoutWithExercises[];
   loading: boolean;
   lastFetched: number | null;
 
   // Actions
   fetchAllData: (force?: boolean) => Promise<void>;
   refreshExerciseSets: (exerciseId: string) => Promise<void>;
+  refreshWorkouts: () => Promise<void>;
   addExercise: (exercise: ExerciseWithUserData) => void;
+  setWorkouts: (workouts: WorkoutWithExercises[]) => void;
 
   // Helper functions for derived data
   getExerciseById: (exerciseId: string) => ExerciseWithUserData | undefined;
@@ -25,6 +28,8 @@ interface WorkoutDataContextType {
   getCurrentMax: (exerciseId: string, minReps: number) => number | null;
   getBestDistance: (exerciseId: string) => number | null;
   getPersonalRecords: (exerciseId: string) => PersonalRecord[];
+  getWorkoutExercises: (workoutId: string) => ExerciseWithUserData[];
+  unassignedExercises: ExerciseWithUserData[];
 }
 
 const STALE_THRESHOLD_MS = 30 * 1000; // 30 seconds
@@ -34,6 +39,7 @@ const WorkoutDataContext = createContext<WorkoutDataContextType | null>(null);
 export function WorkoutDataProvider({ children }: { children: ReactNode }) {
   const [exercises, setExercises] = useState<ExerciseWithUserData[]>([]);
   const [sets, setSets] = useState<Record<string, WorkoutSet[]>>({});
+  const [workouts, setWorkoutsState] = useState<WorkoutWithExercises[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastFetched, setLastFetched] = useState<number | null>(null);
 
@@ -54,10 +60,11 @@ export function WorkoutDataProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
 
-      // Fetch exercises and bulk sets in parallel (2 requests instead of N+1)
-      const [exercisesResponse, setsResponse] = await Promise.all([
+      // Fetch exercises, bulk sets, and workouts in parallel
+      const [exercisesResponse, setsResponse, workoutsResponse] = await Promise.all([
         fetch('/api/exercises'),
         fetch('/api/sets/bulk'),
+        fetch('/api/workouts'),
       ]);
 
       if (exercisesResponse.ok) {
@@ -68,6 +75,11 @@ export function WorkoutDataProvider({ children }: { children: ReactNode }) {
       if (setsResponse.ok) {
         const setsData: Record<string, WorkoutSet[]> = await setsResponse.json();
         setSets(setsData);
+      }
+
+      if (workoutsResponse.ok) {
+        const workoutsData: WorkoutWithExercises[] = await workoutsResponse.json();
+        setWorkoutsState(workoutsData);
       }
 
       setLastFetched(Date.now());
@@ -96,9 +108,25 @@ export function WorkoutDataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshWorkouts = useCallback(async () => {
+    try {
+      const response = await fetch('/api/workouts');
+      if (response.ok) {
+        const workoutsData: WorkoutWithExercises[] = await response.json();
+        setWorkoutsState(workoutsData);
+      }
+    } catch (error) {
+      console.error('Error refreshing workouts:', error);
+    }
+  }, []);
+
   const addExercise = useCallback((exercise: ExerciseWithUserData) => {
     setExercises((prev) => [...prev, exercise]);
     setSets((prev) => ({ ...prev, [exercise.id]: [] }));
+  }, []);
+
+  const setWorkouts = useCallback((newWorkouts: WorkoutWithExercises[]) => {
+    setWorkoutsState(newWorkouts);
   }, []);
 
   // Helper: Get the top (heaviest) set from the last session (excluding today)
@@ -246,16 +274,34 @@ export function WorkoutDataProvider({ children }: { children: ReactNode }) {
     return records;
   }, [sets]);
 
+  // Helper: Get exercises for a specific workout
+  const getWorkoutExercises = useCallback((workoutId: string): ExerciseWithUserData[] => {
+    const workout = workouts.find((w) => w.id === workoutId);
+    if (!workout) return [];
+    return workout.exercise_ids
+      .map((id) => exercises.find((e) => e.id === id))
+      .filter((e): e is ExerciseWithUserData => e !== undefined);
+  }, [workouts, exercises]);
+
+  // Helper: Get exercises not assigned to any workout
+  const unassignedExercises = useMemo(() => {
+    const allAssignedIds = new Set(workouts.flatMap((w) => w.exercise_ids));
+    return exercises.filter((e) => !allAssignedIds.has(e.id));
+  }, [workouts, exercises]);
+
   return (
     <WorkoutDataContext.Provider
       value={{
         exercises,
         sets,
+        workouts,
         loading,
         lastFetched,
         fetchAllData,
         refreshExerciseSets,
+        refreshWorkouts,
         addExercise,
+        setWorkouts,
         getExerciseById,
         getExerciseSets,
         getTopSetLastSession,
@@ -265,6 +311,8 @@ export function WorkoutDataProvider({ children }: { children: ReactNode }) {
         getCurrentMax,
         getBestDistance,
         getPersonalRecords,
+        getWorkoutExercises,
+        unassignedExercises,
       }}
     >
       {children}

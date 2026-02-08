@@ -87,3 +87,16 @@ export interface BodyWeightLog {
 }
 
 export type BodyWeightLogInsert = Omit<BodyWeightLog, 'id' | 'created_at'>;
+
+// Workout (user-created exercise grouping)
+export interface Workout {
+  id: string;
+  user_id: string;
+  name: string;
+  display_order: number;
+  created_at?: string;
+}
+
+export interface WorkoutWithExercises extends Workout {
+  exercise_ids: string[]; // IDs only; full exercise data resolved from context
+}
