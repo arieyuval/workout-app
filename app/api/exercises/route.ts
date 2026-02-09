@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         pinned_note,
         goal_weight,
         goal_reps,
+        hidden,
         exercises (*)
       `)
       .eq('user_id', user.id);
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
       pinned_note?: string;
       goal_weight?: number;
       goal_reps?: number;
+      hidden?: boolean;
     }>();
 
     // Collect user-created exercises and build user data map
@@ -68,26 +70,32 @@ export async function GET(request: NextRequest) {
         pinned_note: link.pinned_note,
         goal_weight: link.goal_weight,
         goal_reps: link.goal_reps,
+        hidden: link.hidden,
       });
 
-      // Collect user-created exercises
+      // Collect user-created exercises (skip hidden ones)
       const exercise = link.exercises as unknown as Exercise | null;
-      if (exercise && !exercise.is_base) {
+      if (exercise && !exercise.is_base && !link.hidden) {
         userCreatedExercises.push(exercise);
       }
     });
 
-    // Merge base exercises with user data
-    const baseWithUserData: ExerciseWithUserData[] = (baseExercises || []).map((ex) => {
-      const userData = userDataMap.get(ex.id) || {};
-      return {
-        ...ex,
-        user_pr_reps: userData.user_pr_reps || 3, // Default to 3 for base exercises
-        pinned_note: userData.pinned_note,
-        goal_weight: userData.goal_weight,
-        goal_reps: userData.goal_reps,
-      };
-    });
+    // Merge base exercises with user data, filtering out hidden ones
+    const baseWithUserData: ExerciseWithUserData[] = (baseExercises || [])
+      .filter((ex) => {
+        const userData = userDataMap.get(ex.id);
+        return !userData?.hidden;
+      })
+      .map((ex) => {
+        const userData = userDataMap.get(ex.id) || {};
+        return {
+          ...ex,
+          user_pr_reps: userData.user_pr_reps || 3, // Default to 3 for base exercises
+          pinned_note: userData.pinned_note,
+          goal_weight: userData.goal_weight,
+          goal_reps: userData.goal_reps,
+        };
+      });
 
     // Merge user-created exercises with user data
     const userCreatedWithData: ExerciseWithUserData[] = userCreatedExercises.map((ex) => {
@@ -204,7 +212,7 @@ export async function POST(request: NextRequest) {
       exerciseToAdd = newExercise;
     }
 
-    // Add exercise to user's feed with user-specific settings
+    // Add exercise to user's feed with user-specific settings (unhide if previously hidden)
     const { data: userExercise, error: linkError } = await supabase
       .from('user_exercises')
       .upsert(
@@ -212,6 +220,7 @@ export async function POST(request: NextRequest) {
           user_id: user.id,
           exercise_id: exerciseToAdd.id,
           user_pr_reps: user_pr_reps || 3, // Default to 3 if not provided
+          hidden: false,
         },
         { onConflict: 'user_id,exercise_id' }
       )

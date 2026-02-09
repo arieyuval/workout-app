@@ -64,13 +64,17 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Soft-delete: upsert user_exercises with hidden=true (preserves all user data)
     const { error } = await supabase
       .from('user_exercises')
-      .delete()
-      .match({ 
-        user_id: session.user.id, 
-        exercise_id: id 
-      });
+      .upsert(
+        {
+          user_id: session.user.id,
+          exercise_id: id,
+          hidden: true,
+        },
+        { onConflict: 'user_id,exercise_id' }
+      );
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

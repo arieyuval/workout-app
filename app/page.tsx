@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, Pencil } from 'lucide-react';
 import SearchBar from './components/SearchBar';
 import MuscleTabs from './components/MuscleTabs';
 import ViewToggle from './components/ViewToggle';
@@ -56,6 +56,9 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isManageWorkoutsOpen, setIsManageWorkoutsOpen] = useState(false);
+  const [activeWorkoutTab, setActiveWorkoutTab] = useState<string>('');
+  const [manageModalMode, setManageModalMode] = useState<'list' | 'edit' | 'create'>('list');
+  const [manageModalWorkoutId, setManageModalWorkoutId] = useState<string | null>(null);
 
   // Persist active tab to sessionStorage
   useEffect(() => {
@@ -86,6 +89,23 @@ export default function Home() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [fetchAllData]);
+
+  // Ensure active workout tab is valid and set default
+  useEffect(() => {
+    if (viewMode === 'workouts') {
+      const isValid = workouts.some(w => w.id === activeWorkoutTab) || (activeWorkoutTab === 'other' && unassignedExercises.length > 0);
+      
+      if (!isValid) {
+        if (workouts.length > 0) {
+          setActiveWorkoutTab(workouts[0].id);
+        } else if (unassignedExercises.length > 0) {
+          setActiveWorkoutTab('other');
+        } else {
+          setActiveWorkoutTab('');
+        }
+      }
+    }
+  }, [viewMode, workouts, unassignedExercises, activeWorkoutTab]);
 
   // Capture set counts at session start for stable sort order
   // (prevents cards from jumping around as sets are logged)
@@ -140,6 +160,12 @@ export default function Home() {
   // Handle when a new exercise is added
   const handleExerciseAdded = () => {
     fetchAllData(true);
+  };
+
+  const openManageModal = (mode: 'list' | 'edit' | 'create', workoutId: string | null = null) => {
+    setManageModalMode(mode);
+    setManageModalWorkoutId(workoutId);
+    setIsManageWorkoutsOpen(true);
   };
 
   if (loading) {
@@ -220,14 +246,41 @@ export default function Home() {
         ) : (
           /* Workout View */
           <>
-            {/* Manage Workouts Button */}
-            <div className="mb-4 sm:mb-6 flex justify-center">
+            {/* Workout Pills Navigation */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+              {workouts.map(w => (
+                <button
+                  key={w.id}
+                  onClick={() => setActiveWorkoutTab(w.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                    activeWorkoutTab === w.id
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {w.name}
+                </button>
+              ))}
+              
+              {unassignedExercises.length > 0 && (
+                <button
+                  onClick={() => setActiveWorkoutTab('other')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                    activeWorkoutTab === 'other'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  Other
+                </button>
+              )}
+
               <button
-                onClick={() => setIsManageWorkoutsOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                onClick={() => openManageModal('create')}
+                className="p-2 rounded-full bg-white dark:bg-gray-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 flex-shrink-0"
+                title="Add Workout"
               >
-                <Settings className="w-4 h-4" />
-                Manage Workouts
+                <Plus className="w-4 h-4" />
               </button>
             </div>
 
@@ -238,48 +291,54 @@ export default function Home() {
               </div>
             ) : (
               <>
-                {workouts.map((workout) => {
-                  const workoutExercises = getWorkoutExercises(workout.id)
-                    .filter(matchesSearch);
+                {(() => {
+                  if (activeWorkoutTab === 'other') {
+                    return (
+                      <WorkoutSection
+                        title="Other"
+                        exercises={unassignedExercises.filter(matchesSearch)}
+                        sets={sets}
+                        getTopSetLastSession={getTopSetLastSession}
+                        getLastSet={getLastSet}
+                        getLastSessionNotes={getLastSessionNotes}
+                        getCurrentMax={getCurrentMax}
+                        getBestDistance={getBestDistance}
+                        onSetLogged={handleSetLogged}
+                      />
+                    );
+                  }
+
+                  const activeWorkout = workouts.find(w => w.id === activeWorkoutTab);
+                  if (!activeWorkout) return null;
+
+                  const workoutExercises = getWorkoutExercises(activeWorkout.id).filter(matchesSearch);
+
                   return (
-                    <WorkoutSection
-                      key={workout.id}
-                      title={workout.name}
-                      exercises={workoutExercises}
-                      sets={sets}
-                      getTopSetLastSession={getTopSetLastSession}
-                      getLastSet={getLastSet}
-                      getLastSessionNotes={getLastSessionNotes}
-                      getCurrentMax={getCurrentMax}
-                      getBestDistance={getBestDistance}
-                      onSetLogged={handleSetLogged}
-                    />
+                    <>
+                      <div className="flex justify-end mb-2">
+                        <button
+                          onClick={() => openManageModal('edit', activeWorkout.id)}
+                          className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          <Pencil className="w-4 h-4" />
+                          Edit Workout
+                        </button>
+                      </div>
+                      <WorkoutSection
+                        key={activeWorkout.id}
+                        title={activeWorkout.name}
+                        exercises={workoutExercises}
+                        sets={sets}
+                        getTopSetLastSession={getTopSetLastSession}
+                        getLastSet={getLastSet}
+                        getLastSessionNotes={getLastSessionNotes}
+                        getCurrentMax={getCurrentMax}
+                        getBestDistance={getBestDistance}
+                        onSetLogged={handleSetLogged}
+                      />
+                    </>
                   );
-                })}
-
-                {/* Other (unassigned) section */}
-                <WorkoutSection
-                  title="Other"
-                  exercises={unassignedExercises.filter(matchesSearch)}
-                  sets={sets}
-                  getTopSetLastSession={getTopSetLastSession}
-                  getLastSet={getLastSet}
-                  getLastSessionNotes={getLastSessionNotes}
-                  getCurrentMax={getCurrentMax}
-                  getBestDistance={getBestDistance}
-                  onSetLogged={handleSetLogged}
-                />
-
-                {/* Show message if search has no results */}
-                {workouts.every(
-                  (w) => getWorkoutExercises(w.id).filter(matchesSearch).length === 0
-                ) &&
-                  unassignedExercises.filter(matchesSearch).length === 0 &&
-                  searchQuery && (
-                    <div className="text-center text-gray-500 dark:text-gray-400 py-12">
-                      No exercises found matching your search.
-                    </div>
-                  )}
+                })()}
               </>
             )}
           </>
@@ -307,6 +366,8 @@ export default function Home() {
       <ManageWorkoutsModal
         isOpen={isManageWorkoutsOpen}
         onClose={() => setIsManageWorkoutsOpen(false)}
+        initialView={manageModalMode}
+        initialWorkoutId={manageModalWorkoutId}
       />
 
       {/* Footer */}

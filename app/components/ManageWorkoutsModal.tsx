@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Plus, ArrowLeft, Trash2, Pencil } from 'lucide-react';
 import { useWorkoutData } from '../context/WorkoutDataContext';
 import type { WorkoutWithExercises } from '@/lib/types';
@@ -9,11 +9,18 @@ import { getPrimaryMuscleGroup } from '@/lib/muscle-utils';
 interface ManageWorkoutsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialView?: 'list' | 'edit' | 'create';
+  initialWorkoutId?: string | null;
 }
 
 type ModalView = 'list' | 'edit';
 
-export default function ManageWorkoutsModal({ isOpen, onClose }: ManageWorkoutsModalProps) {
+export default function ManageWorkoutsModal({ 
+  isOpen, 
+  onClose,
+  initialView = 'list',
+  initialWorkoutId = null
+}: ManageWorkoutsModalProps) {
   const { exercises, workouts, setWorkouts } = useWorkoutData();
 
   const [view, setView] = useState<ModalView>('list');
@@ -23,6 +30,30 @@ export default function ManageWorkoutsModal({ isOpen, onClose }: ManageWorkoutsM
   const [editExerciseIds, setEditExerciseIds] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Track previous open state to only run initialization logic when modal first opens
+  const wasOpenRef = useRef(isOpen);
+
+  useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      setError(null);
+      if (initialView === 'create') {
+        handleNewWorkout();
+      } else if (initialView === 'edit' && initialWorkoutId) {
+        const workout = workouts.find(w => w.id === initialWorkoutId);
+        if (workout) {
+          handleEditWorkout(workout);
+        } else {
+          setView('list');
+          setEditingWorkout(null);
+        }
+      } else {
+        setView('list');
+        setEditingWorkout(null);
+      }
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen, initialView, initialWorkoutId, workouts]);
 
   const handleClose = () => {
     setView('list');
@@ -305,11 +336,24 @@ export default function ManageWorkoutsModal({ isOpen, onClose }: ManageWorkoutsM
 
         {/* Footer (save button for edit view) */}
         {view === 'edit' && (
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 shrink-0">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 shrink-0 flex justify-between items-center gap-4">
+            {editingWorkout && (
+              <button
+                onClick={() => {
+                  if (confirm('Are you sure you want to delete this workout?')) {
+                    handleDeleteWorkout(editingWorkout.id);
+                    onClose();
+                  }
+                }}
+                className="text-red-600 hover:text-red-700 text-sm font-medium whitespace-nowrap"
+              >
+                Delete
+              </button>
+            )}
             <button
               onClick={handleSaveWorkout}
               disabled={isSaving || !editName.trim()}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-md transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-md transition-colors"
             >
               {isSaving ? (
                 <>

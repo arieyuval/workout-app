@@ -21,6 +21,7 @@ export interface UserExercise {
   pinned_note?: string; // optional pinned note that always displays on the card for this user
   goal_weight?: number; // optional goal weight for PR tracking (strength exercises) for this user
   goal_reps?: number; // optional goal reps for PR tracking (body weight exercises) for this user
+  hidden?: boolean; // soft-delete: hides exercise from user's list while preserving data
   created_at?: string;
 }
 
