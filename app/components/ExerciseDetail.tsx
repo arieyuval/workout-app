@@ -36,9 +36,9 @@ export default function ExerciseDetail({
   const { refreshExerciseSets, fetchAllData } = useWorkoutData();
   const [sets, setSets] = useState<WorkoutSet[]>(initialSets);
   const [prs, setPRs] = useState<PersonalRecord[]>(initialPRs);
-  const [selectedRepMax, setSelectedRepMax] = useState<number | ''>(exercise.user_pr_reps);
+  const [selectedRepMax, setSelectedRepMax] = useState<number | ''>(exercise.user_pr_reps || (exercise as any).default_pr_reps || 3);
   const [currentMax, setCurrentMax] = useState<number | null>(null);
-  const [userPrReps, setDefaultPrReps] = useState<number | ''>(exercise.user_pr_reps);
+  const [userPrReps, setDefaultPrReps] = useState<number | ''>(exercise.user_pr_reps || (exercise as any).default_pr_reps || 3);
   const [isUpdatingDefault, setIsUpdatingDefault] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -262,13 +262,22 @@ export default function ExerciseDetail({
           method: 'DELETE',
         });
 
-        if (!response.ok) throw new Error('Failed to delete exercise');
+        if (!response.ok) {
+          let errorMessage = 'Failed to delete exercise';
+          try {
+            const data = await response.json();
+            if (data.error) errorMessage = data.error;
+          } catch {
+            errorMessage = `Error ${response.status}: ${response.statusText}`;
+          }
+          throw new Error(errorMessage);
+        }
 
         await fetchAllData(true);
         router.push('/');
       } catch (error) {
         console.error('Error deleting exercise:', error);
-        alert('Failed to delete exercise. Please try again.');
+        alert(error instanceof Error ? error.message : 'Failed to delete exercise. Please try again.');
         setIsDeleting(false);
       }
     }

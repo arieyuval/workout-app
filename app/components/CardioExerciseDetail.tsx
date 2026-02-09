@@ -114,13 +114,22 @@ export default function CardioExerciseDetail({
           method: 'DELETE',
         });
 
-        if (!response.ok) throw new Error('Failed to delete exercise');
+        if (!response.ok) {
+          let errorMessage = 'Failed to delete exercise';
+          try {
+            const data = await response.json();
+            if (data.error) errorMessage = data.error;
+          } catch {
+            errorMessage = `Error ${response.status}: ${response.statusText}`;
+          }
+          throw new Error(errorMessage);
+        }
 
         await fetchAllData(true);
         router.push('/');
       } catch (error) {
         console.error('Error deleting exercise:', error);
-        alert('Failed to delete exercise. Please try again.');
+        alert(error instanceof Error ? error.message : 'Failed to delete exercise. Please try again.');
         setIsDeleting(false);
       }
     }
