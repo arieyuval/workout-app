@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, Settings } from 'lucide-react';
 import SearchBar from './components/SearchBar';
 import MuscleTabs from './components/MuscleTabs';
@@ -87,6 +87,18 @@ export default function Home() {
     };
   }, [fetchAllData]);
 
+  // Capture set counts at session start for stable sort order
+  // (prevents cards from jumping around as sets are logged)
+  const sortSetCountsRef = useRef<Record<string, number> | null>(null);
+  if (sortSetCountsRef.current === null && Object.keys(sets).length > 0) {
+    const counts: Record<string, number> = {};
+    for (const [id, exerciseSets] of Object.entries(sets)) {
+      counts[id] = exerciseSets.length;
+    }
+    sortSetCountsRef.current = counts;
+  }
+  const sortSetCounts = sortSetCountsRef.current || {};
+
   // Search filter helper
   const matchesSearch = (exercise: ExerciseWithUserData) => {
     if (searchQuery === '') return true;
@@ -105,12 +117,12 @@ export default function Home() {
         return matchesTab && matchesSearch(exercise);
       })
       .sort((a, b) => {
-        const aSets = sets[a.id]?.length || 0;
-        const bSets = sets[b.id]?.length || 0;
+        const aSets = sortSetCounts[a.id] || 0;
+        const bSets = sortSetCounts[b.id] || 0;
         return bSets - aSets;
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exercises, activeTab, searchQuery, sets]);
+  }, [exercises, activeTab, searchQuery, sortSetCounts]);
 
   // Refresh sets for a specific exercise after logging
   const handleSetLogged = async (exerciseId: string) => {

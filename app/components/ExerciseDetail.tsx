@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { ExerciseWithUserData, WorkoutSet, PersonalRecord } from '@/lib/types';
 import { format } from 'date-fns';
 import { Pin, X, Check, Pencil, Trash2, Target } from 'lucide-react';
@@ -31,6 +32,7 @@ export default function ExerciseDetail({
   initialPRs,
   lastSet,
 }: ExerciseDetailProps) {
+  const router = useRouter();
   const { refreshExerciseSets, fetchAllData } = useWorkoutData();
   const [sets, setSets] = useState<WorkoutSet[]>(initialSets);
   const [prs, setPRs] = useState<PersonalRecord[]>(initialPRs);
@@ -38,6 +40,7 @@ export default function ExerciseDetail({
   const [currentMax, setCurrentMax] = useState<number | null>(null);
   const [userPrReps, setDefaultPrReps] = useState<number | ''>(exercise.user_pr_reps);
   const [isUpdatingDefault, setIsUpdatingDefault] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Pinned note state
   const [pinnedNote, setPinnedNote] = useState<string>(exercise.pinned_note || '');
@@ -248,6 +251,26 @@ export default function ExerciseDetail({
       console.error('Error updating goal reps:', error);
     } finally {
       setIsUpdatingGoalReps(false);
+    }
+  };
+
+  const handleDeleteExercise = async () => {
+    if (confirm('Are you sure you want to remove this exercise? You can add it back later and set data will be saved.')) {
+      setIsDeleting(true);
+      try {
+        const response = await fetch(`/api/exercises/${exercise.id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) throw new Error('Failed to delete exercise');
+
+        await fetchAllData(true);
+        router.push('/');
+      } catch (error) {
+        console.error('Error deleting exercise:', error);
+        alert('Failed to delete exercise. Please try again.');
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -579,6 +602,22 @@ export default function ExerciseDetail({
             onSetDeleted={handleSetLogged}
           />
         </div>
+      </div>
+
+      {/* Delete Exercise Button */}
+      <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-center">
+        <button
+          onClick={handleDeleteExercise}
+          disabled={isDeleting}
+          className="flex items-center gap-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50"
+        >
+          {isDeleting ? (
+            <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Trash2 className="w-4 h-4" />
+          )}
+          Remove Exercise
+        </button>
       </div>
     </div>
   );
