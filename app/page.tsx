@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Plus, Settings, Pencil } from 'lucide-react';
+import { Plus, MoreVertical } from 'lucide-react';
 import SearchBar from './components/SearchBar';
 import MuscleTabs from './components/MuscleTabs';
 import ViewToggle from './components/ViewToggle';
 import WorkoutSection from './components/WorkoutSection';
 import ManageWorkoutsModal from './components/ManageWorkoutsModal';
+import WorkoutReorderModal from './components/WorkoutReorderModal';
 import ExerciseCard from './components/ExerciseCard';
 import CardioExerciseCard from './components/CardioExerciseCard';
 import AddExerciseModal from './components/AddExerciseModal';
@@ -31,8 +32,8 @@ export default function Home() {
     getCurrentMax,
     getBestDistance,
     workouts,
+    setWorkouts,
     getWorkoutExercises,
-    unassignedExercises,
   } = useWorkoutData();
 
   const [activeTab, setActiveTab] = useState<MuscleGroup>(() => {
@@ -59,6 +60,9 @@ export default function Home() {
   const [activeWorkoutTab, setActiveWorkoutTab] = useState<string>('');
   const [manageModalMode, setManageModalMode] = useState<'list' | 'edit' | 'create'>('list');
   const [manageModalWorkoutId, setManageModalWorkoutId] = useState<string | null>(null);
+  const [isWorkoutMenuOpen, setIsWorkoutMenuOpen] = useState(false);
+  const [isReorderOpen, setIsReorderOpen] = useState(false);
+  const workoutMenuRef = useRef<HTMLDivElement>(null);
 
   // Persist active tab to sessionStorage
   useEffect(() => {
@@ -93,19 +97,17 @@ export default function Home() {
   // Ensure active workout tab is valid and set default
   useEffect(() => {
     if (viewMode === 'workouts') {
-      const isValid = workouts.some(w => w.id === activeWorkoutTab) || (activeWorkoutTab === 'other' && unassignedExercises.length > 0);
-      
+      const isValid = workouts.some(w => w.id === activeWorkoutTab);
+
       if (!isValid) {
         if (workouts.length > 0) {
           setActiveWorkoutTab(workouts[0].id);
-        } else if (unassignedExercises.length > 0) {
-          setActiveWorkoutTab('other');
         } else {
           setActiveWorkoutTab('');
         }
       }
     }
-  }, [viewMode, workouts, unassignedExercises, activeWorkoutTab]);
+  }, [viewMode, workouts, activeWorkoutTab]);
 
   // Capture set counts at session start for stable sort order
   // (prevents cards from jumping around as sets are logged)
@@ -162,10 +164,57 @@ export default function Home() {
     fetchAllData(true);
   };
 
+  // Close workout menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (workoutMenuRef.current && !workoutMenuRef.current.contains(e.target as Node)) {
+        setIsWorkoutMenuOpen(false);
+      }
+    };
+    if (isWorkoutMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isWorkoutMenuOpen]);
+
   const openManageModal = (mode: 'list' | 'edit' | 'create', workoutId: string | null = null) => {
     setManageModalMode(mode);
     setManageModalWorkoutId(workoutId);
     setIsManageWorkoutsOpen(true);
+  };
+
+  const handleReorderSave = async (orderedIds: string[]) => {
+    try {
+      const response = await fetch('/api/workouts/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workout_ids: orderedIds }),
+      });
+      if (!response.ok) throw new Error('Failed to reorder');
+      // Re-sort workouts locally to match new order
+      const reordered = orderedIds
+        .map((id) => workouts.find((w) => w.id === id))
+        .filter(Boolean) as typeof workouts;
+      setWorkouts(reordered);
+    } catch (error) {
+      console.error('Error reordering workouts:', error);
+    }
+  };
+
+  const handleDeleteActiveWorkout = async () => {
+    const activeWorkout = workouts.find((w) => w.id === activeWorkoutTab);
+    if (!activeWorkout) return;
+    if (!confirm(`Delete "${activeWorkout.name}"?`)) return;
+
+    try {
+      const response = await fetch(`/api/workouts/${activeWorkout.id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete workout');
+      setWorkouts(workouts.filter((w) => w.id !== activeWorkout.id));
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+    }
   };
 
   if (loading) {
@@ -247,96 +296,120 @@ export default function Home() {
           /* Workout View */
           <>
             {/* Workout Pills Navigation */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-              {workouts.map(w => (
-                <button
-                  key={w.id}
-                  onClick={() => setActiveWorkoutTab(w.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                    activeWorkoutTab === w.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  {w.name}
-                </button>
-              ))}
-              
-              {unassignedExercises.length > 0 && (
-                <button
-                  onClick={() => setActiveWorkoutTab('other')}
-                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                    activeWorkoutTab === 'other'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  Other
-                </button>
-              )}
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide flex-1 min-w-0">
+                {workouts.map(w => (
+                  <button
+                    key={w.id}
+                    onClick={() => setActiveWorkoutTab(w.id)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                      activeWorkoutTab === w.id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {w.name}
+                  </button>
+                ))}
 
-              <button
-                onClick={() => openManageModal('create')}
-                className="p-2 rounded-full bg-white dark:bg-gray-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 flex-shrink-0"
-                title="Add Workout"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+              </div>
+
+              {/* Action buttons — outside scrollable area so dropdown isn't clipped */}
+              <div className="flex items-center gap-1 flex-shrink-0 pb-2">
+                <button
+                  onClick={() => openManageModal('create')}
+                  className="p-2 rounded-full bg-white dark:bg-gray-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
+                  title="Add Workout"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+
+                {workouts.length > 0 && (
+                  <div className="relative" ref={workoutMenuRef}>
+                    <button
+                      onClick={() => setIsWorkoutMenuOpen(!isWorkoutMenuOpen)}
+                      className="p-2 rounded-full bg-white dark:bg-gray-800 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
+                      title="Workout options"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+
+                    {isWorkoutMenuOpen && (
+                      <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 py-1">
+                        {activeWorkoutTab && (
+                          <button
+                            onClick={() => {
+                              setIsWorkoutMenuOpen(false);
+                              openManageModal('edit', activeWorkoutTab);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            Edit Workout
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setIsWorkoutMenuOpen(false);
+                            openManageModal('list');
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          Manage Workouts
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsWorkoutMenuOpen(false);
+                            setIsReorderOpen(true);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          Reorder
+                        </button>
+                        {activeWorkoutTab && (
+                          <button
+                            onClick={() => {
+                              setIsWorkoutMenuOpen(false);
+                              handleDeleteActiveWorkout();
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          >
+                            Delete Workout
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Workout Sections */}
-            {workouts.length === 0 && unassignedExercises.length === 0 ? (
+            {workouts.length === 0 ? (
               <div className="text-center text-gray-500 dark:text-gray-400 py-12">
-                No exercises yet. Add some exercises to get started.
+                No workouts yet. Create one to get started.
               </div>
             ) : (
               <>
                 {(() => {
-                  if (activeWorkoutTab === 'other') {
-                    return (
-                      <WorkoutSection
-                        title="Other"
-                        exercises={unassignedExercises.filter(matchesSearch)}
-                        sets={sets}
-                        getTopSetLastSession={getTopSetLastSession}
-                        getLastSet={getLastSet}
-                        getLastSessionNotes={getLastSessionNotes}
-                        getCurrentMax={getCurrentMax}
-                        getBestDistance={getBestDistance}
-                        onSetLogged={handleSetLogged}
-                      />
-                    );
-                  }
-
                   const activeWorkout = workouts.find(w => w.id === activeWorkoutTab);
                   if (!activeWorkout) return null;
 
                   const workoutExercises = getWorkoutExercises(activeWorkout.id).filter(matchesSearch);
 
                   return (
-                    <>
-                      <div className="flex justify-end mb-2">
-                        <button
-                          onClick={() => openManageModal('edit', activeWorkout.id)}
-                          className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                          <Pencil className="w-4 h-4" />
-                          Edit Workout
-                        </button>
-                      </div>
-                      <WorkoutSection
-                        key={activeWorkout.id}
-                        title={activeWorkout.name}
-                        exercises={workoutExercises}
-                        sets={sets}
-                        getTopSetLastSession={getTopSetLastSession}
-                        getLastSet={getLastSet}
-                        getLastSessionNotes={getLastSessionNotes}
-                        getCurrentMax={getCurrentMax}
-                        getBestDistance={getBestDistance}
-                        onSetLogged={handleSetLogged}
-                      />
-                    </>
+                    <WorkoutSection
+                      key={activeWorkout.id}
+                      title={activeWorkout.name}
+                      exercises={workoutExercises}
+                      sets={sets}
+                      getTopSetLastSession={getTopSetLastSession}
+                      getLastSet={getLastSet}
+                      getLastSessionNotes={getLastSessionNotes}
+                      getCurrentMax={getCurrentMax}
+                      getBestDistance={getBestDistance}
+                      onSetLogged={handleSetLogged}
+                      onEdit={() => openManageModal('edit', activeWorkout.id)}
+                    />
                   );
                 })()}
               </>
@@ -368,6 +441,14 @@ export default function Home() {
         onClose={() => setIsManageWorkoutsOpen(false)}
         initialView={manageModalMode}
         initialWorkoutId={manageModalWorkoutId}
+      />
+
+      {/* Reorder Workouts Modal */}
+      <WorkoutReorderModal
+        isOpen={isReorderOpen}
+        onClose={() => setIsReorderOpen(false)}
+        workouts={workouts}
+        onSave={handleReorderSave}
       />
 
       {/* Footer */}

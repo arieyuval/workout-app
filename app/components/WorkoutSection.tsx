@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import ExerciseCard from './ExerciseCard';
 import CardioExerciseCard from './CardioExerciseCard';
 import type { ExerciseWithUserData, WorkoutSet } from '@/lib/types';
@@ -17,6 +17,7 @@ interface WorkoutSectionProps {
   getCurrentMax: (exerciseId: string, minReps: number) => number | null;
   getBestDistance: (exerciseId: string) => number | null;
   onSetLogged: (exerciseId: string) => void;
+  onEdit?: () => void;
 }
 
 export default function WorkoutSection({
@@ -30,6 +31,7 @@ export default function WorkoutSection({
   getCurrentMax,
   getBestDistance,
   onSetLogged,
+  onEdit,
 }: WorkoutSectionProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -45,22 +47,33 @@ export default function WorkoutSection({
   return (
     <div className="mb-6">
       {/* Section Header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 mb-3 px-1 group touch-manipulation"
-      >
-        {expanded ? (
-          <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
-        ) : (
-          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+      <div className="flex items-center gap-2 mb-3 px-1">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-2 group touch-manipulation"
+        >
+          {expanded ? (
+            <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+          )}
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {title}
+          </h2>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            ({exercises.length})
+          </span>
+        </button>
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            title="Edit workout"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
         )}
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          {title}
-        </h2>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          ({exercises.length})
-        </span>
-      </button>
+      </div>
 
       {/* Exercise Grid */}
       {expanded && (
