@@ -45,8 +45,9 @@ export default function LoginPage() {
 
         if (error) throw error;
 
-        // Sign up successful, show tutorial before redirecting
-        setShowTutorial(true);
+        // Sign up successful, redirect to home
+        router.push('/');
+        router.refresh();
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -245,6 +246,9 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => {
+                if (!isSignUp) {
+                  setShowTutorial(true);
+                }
                 setIsSignUp(!isSignUp);
                 setError(null);
                 setMessage(null);
@@ -266,11 +270,7 @@ export default function LoginPage() {
 
       <TutorialModal
         isOpen={showTutorial}
-        onClose={() => {
-          setShowTutorial(false);
-          router.push('/');
-          router.refresh();
-        }}
+        onClose={() => setShowTutorial(false)}
       />
     </div>
   );

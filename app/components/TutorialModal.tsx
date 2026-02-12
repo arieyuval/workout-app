@@ -44,7 +44,7 @@ export default function TutorialModal({ isOpen, onClose }: TutorialModalProps) {
       />
 
       {/* Modal */}
-      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md mx-4 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-50 max-h-[90vh] overflow-y-auto">
+      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg mx-4 bg-white dark:bg-gray-800 rounded-2xl shadow-xl z-50 max-h-[90vh] overflow-y-auto">
         {/* Close button */}
         <button
           onClick={handleClose}
@@ -70,9 +70,9 @@ export default function TutorialModal({ isOpen, onClose }: TutorialModalProps) {
             <Image
               src={`/tutorial/${currentStep + 1}.png`}
               alt={`Tutorial step ${currentStep + 1}`}
-              width={350}
-              height={600}
-              className="rounded-md object-contain max-h-[55vh]"
+              width={450}
+              height={750}
+              className="rounded-lg object-contain max-h-[65vh] w-full"
               priority
             />
           </div>
