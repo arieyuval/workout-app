@@ -2,35 +2,21 @@
 
 import { useState, useMemo } from 'react';
 import type { WorkoutSet } from '@/lib/types';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { getSetStrengthScore } from '@/lib/strength-utils';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
+import { Info } from 'lucide-react';
 
 interface ProgressChartProps {
   sets: WorkoutSet[];
   usesBodyWeight?: boolean;
-  goalWeight?: number | null;
-  goalReps?: number | null;
 }
 
-export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight, goalReps }: ProgressChartProps) {
+export default function ProgressChart({ sets, usesBodyWeight = false }: ProgressChartProps) {
   // For bodyweight exercises: show reps progression over time (best reps per day)
-  // For regular exercises: show weight progression for a specific rep count
+  // For regular exercises: show Strength Score (estimated 1RM) progression
 
-  // Get unique rep counts from the data for the dropdown (only for non-bodyweight exercises)
-  const availableReps = useMemo(() => {
-    if (usesBodyWeight) return [];
-    const reps = new Set<number>();
-    sets.forEach((set) => {
-      if (set.reps !== undefined && set.reps > 0) {
-        reps.add(set.reps);
-      }
-    });
-    return Array.from(reps).sort((a, b) => a - b);
-  }, [sets, usesBodyWeight]);
-
-  const [selectedReps, setSelectedReps] = useState<number | null>(
-    availableReps.length > 0 ? availableReps[0] : null
-  );
+  const [showInfo, setShowInfo] = useState(false);
 
   // Chart data for bodyweight exercises: group by day, show max reps
   const bodyweightChartData = useMemo(() => {
@@ -57,85 +43,64 @@ export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight
       }));
   }, [sets, usesBodyWeight]);
 
-  // Chart data for regular exercises: filter by rep count (or more), group by day, show max weight
+  // Chart data for regular exercises: calculate Strength Score for every set, keep peak per day
   const regularChartData = useMemo(() => {
-    if (usesBodyWeight || selectedReps === null) return [];
+    if (usesBodyWeight) return [];
 
-    // Filter sets with selectedReps or more
-    const filteredSets = sets.filter(
-      (set) => set.reps !== undefined && set.reps >= selectedReps && set.weight !== undefined
-    );
+    const byDay = new Map<string, { score: number; weight: number; reps: number; date: string }>();
 
-    // Group by day (using date string without time)
-    const byDay = new Map<string, WorkoutSet>();
-    filteredSets.forEach((set) => {
+    sets.forEach((set) => {
+      const result = getSetStrengthScore(set);
+      if (!result) return;
+
       const dayKey = format(new Date(set.date), 'yyyy-MM-dd');
       const existing = byDay.get(dayKey);
-      if (!existing || (set.weight! > existing.weight!)) {
-        byDay.set(dayKey, set);
+
+      if (!existing || result.score > existing.score) {
+        byDay.set(dayKey, {
+          score: result.score,
+          weight: result.weight,
+          reps: result.reps,
+          date: set.date,
+        });
       }
     });
 
-    // Convert to array and sort by date (oldest first)
     return Array.from(byDay.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([, set]) => ({
-        date: format(new Date(set.date), 'MMM d'),
-        weight: set.weight,
-        reps: set.reps,
-        fullDate: format(new Date(set.date), 'MMM d, yyyy'),
+      .map(([, data]) => ({
+        date: format(new Date(data.date), 'MMM d'),
+        strengthScore: data.score,
+        weight: data.weight,
+        reps: data.reps,
+        fullDate: format(new Date(data.date), 'MMM d, yyyy'),
       }));
-  }, [sets, selectedReps, usesBodyWeight]);
+  }, [sets, usesBodyWeight]);
 
   const chartData = usesBodyWeight ? bodyweightChartData : regularChartData;
 
-  // Calculate Y-axis domain to include goal (weight for strength, reps for bodyweight)
+  // Calculate Y-axis domain
   const yAxisDomain = useMemo(() => {
     if (chartData.length === 0) return undefined;
 
     if (usesBodyWeight) {
       const reps = chartData.map((d) => d.reps as number).filter((r) => r !== undefined);
-      if (goalReps) {
-        reps.push(goalReps);
-      }
       if (reps.length === 0) return undefined;
       const min = Math.min(...reps);
       const max = Math.max(...reps);
       const padding = (max - min) * 0.1 || 2;
       return [Math.floor(min - padding), Math.ceil(max + padding)];
     } else {
-      const weights = chartData.map((d) => d.weight as number).filter((w) => w !== undefined);
-      if (goalWeight) {
-        weights.push(goalWeight);
-      }
-      if (weights.length === 0) return undefined;
-      const min = Math.min(...weights);
-      const max = Math.max(...weights);
+      const scores = chartData.map((d) => (d as any).strengthScore as number).filter((s) => s !== undefined);
+      if (scores.length === 0) return undefined;
+      const min = Math.min(...scores);
+      const max = Math.max(...scores);
       const padding = (max - min) * 0.1 || 5;
       return [Math.floor(min - padding), Math.ceil(max + padding)];
     }
-  }, [chartData, goalWeight, goalReps, usesBodyWeight]);
-
-  // Determine if goal has been reached (for goal line color)
-  const maxValue = useMemo(() => {
-    if (chartData.length === 0) return null;
-    if (usesBodyWeight) {
-      const reps = chartData.map((d) => d.reps as number).filter((r) => r !== undefined);
-      return reps.length > 0 ? Math.max(...reps) : null;
-    } else {
-      const weights = chartData.map((d) => d.weight as number).filter((w) => w !== undefined);
-      return weights.length > 0 ? Math.max(...weights) : null;
-    }
   }, [chartData, usesBodyWeight]);
 
-  const goalReached = usesBodyWeight
-    ? maxValue !== null && goalReps && maxValue >= goalReps
-    : maxValue !== null && goalWeight && maxValue >= goalWeight;
-  const goalLineColor = goalReached ? '#10B981' : '#3B82F6'; // green if reached, blue otherwise
-
-  // For bodyweight exercises, check if there are any sets
-  // For regular exercises, check if there are available rep counts
-  if (sets.length === 0 || (!usesBodyWeight && availableReps.length === 0)) {
+  if (sets.length === 0) {
     return (
       <div className="text-center text-gray-500 dark:text-gray-400 py-8">
         No data to display. Log some sets to see your progress!
@@ -145,23 +110,33 @@ export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight
 
   return (
     <div className="w-full bg-white dark:bg-gray-800 p-4 rounded-lg">
-      {/* Rep selector - only for non-bodyweight exercises */}
+      {/* Strength Score description + info icon - only for non-bodyweight exercises */}
       {!usesBodyWeight && (
-        <div className="flex items-center gap-3 mb-4">
-          <label className="text-sm text-gray-600 dark:text-gray-400">
-            Show sets with
-          </label>
-          <select
-            value={selectedReps ?? ''}
-            onChange={(e) => setSelectedReps(Number(e.target.value))}
-            className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {availableReps.map((reps) => (
-              <option key={reps} value={reps}>
-                {reps}+ reps
-              </option>
-            ))}
-          </select>
+        <div className="mb-4">
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Showing peak Strength Score per day
+            </p>
+            <button
+              onClick={() => setShowInfo(!showInfo)}
+              className="p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+              title="What is Strength Score?"
+              aria-label="Strength Score info"
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          </div>
+          {showInfo && (
+            <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-md text-xs text-gray-600 dark:text-gray-300 space-y-1">
+              <p className="font-medium text-gray-800 dark:text-gray-100">
+                Strength Score (Estimated 1RM)
+              </p>
+              <p>Normalizes sets across all rep ranges into a single comparable score. These are the standard formulas used by many apps.</p>
+              <p>1–10 reps: Weight × 36 / (37 − Reps) <span className="text-gray-400">(Brzycki)</span></p>
+              <p>11+ reps: Weight × (1 + Reps / 30) <span className="text-gray-400">(Epley)</span></p>
+              <p className="text-gray-400 italic">Higher score = stronger performance</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -178,7 +153,7 @@ export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight
         <div className="text-center text-gray-500 dark:text-gray-400 py-8">
           {usesBodyWeight
             ? 'No sets found.'
-            : `No sets found with ${selectedReps}+ reps.`}
+            : 'No sets found.'}
         </div>
       ) : (
         <div className="w-full h-72">
@@ -195,7 +170,7 @@ export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight
                 style={{ fontSize: '12px' }}
                 domain={yAxisDomain}
                 label={{
-                  value: usesBodyWeight ? 'Reps' : 'Weight (lbs)',
+                  value: usesBodyWeight ? 'Reps' : 'Strength Score',
                   angle: -90,
                   position: 'insideLeft',
                   style: { fill: '#9CA3AF' }
@@ -213,7 +188,9 @@ export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight
                   if (usesBodyWeight && name === 'reps' && value !== undefined) {
                     return [`${value} reps`, 'Reps'];
                   }
-                  if (name === 'weight' && value !== undefined) return [`${value} lbs`, 'Weight'];
+                  if (name === 'strengthScore' && value !== undefined) {
+                    return [`${value}`, 'Strength Score'];
+                  }
                   return [value ?? '', name ?? ''];
                 }}
                 labelFormatter={(label, payload) => {
@@ -222,46 +199,17 @@ export default function ProgressChart({ sets, usesBodyWeight = false, goalWeight
                     if (usesBodyWeight) {
                       return data.fullDate;
                     }
-                    return `${data.fullDate} - ${data.reps} reps`;
+                    return `${data.fullDate} — ${data.weight} lbs × ${data.reps} reps`;
                   }
                   return label;
                 }}
               />
-              {/* Goal reference line (weight for strength, reps for bodyweight) */}
-              {!usesBodyWeight && goalWeight && (
-                <ReferenceLine
-                  y={goalWeight}
-                  stroke={goalLineColor}
-                  strokeDasharray={goalReached ? undefined : '5 5'}
-                  strokeWidth={2}
-                  label={{
-                    value: `Goal: ${goalWeight}`,
-                    position: 'right',
-                    fill: goalLineColor,
-                    fontSize: 11,
-                  }}
-                />
-              )}
-              {usesBodyWeight && goalReps && (
-                <ReferenceLine
-                  y={goalReps}
-                  stroke={goalLineColor}
-                  strokeDasharray={goalReached ? undefined : '5 5'}
-                  strokeWidth={2}
-                  label={{
-                    value: `Goal: ${goalReps}`,
-                    position: 'right',
-                    fill: goalLineColor,
-                    fontSize: 11,
-                  }}
-                />
-              )}
               <Line
                 type="monotone"
-                dataKey={usesBodyWeight ? 'reps' : 'weight'}
-                stroke={goalReached ? '#10B981' : '#3B82F6'}
+                dataKey={usesBodyWeight ? 'reps' : 'strengthScore'}
+                stroke="#3B82F6"
                 strokeWidth={2}
-                dot={{ fill: goalReached ? '#10B981' : '#3B82F6', r: 4 }}
+                dot={{ fill: '#3B82F6', r: 4 }}
                 activeDot={{ r: 6 }}
               />
             </LineChart>
