@@ -5,6 +5,7 @@ import { createBrowserSupabaseClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Footer from '../components/Footer';
+import TutorialModal from '../components/TutorialModal';
 
 export default function LoginPage() {
   const [name, setName] = useState('');
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
   const router = useRouter();
   const supabase = createBrowserSupabaseClient();
 
@@ -43,10 +45,8 @@ export default function LoginPage() {
 
         if (error) throw error;
 
-        // Sign up successful, redirect to home
-        // Weight data will be saved on first page load via API
-        router.push('/');
-        router.refresh();
+        // Sign up successful, show tutorial before redirecting
+        setShowTutorial(true);
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -263,6 +263,15 @@ export default function LoginPage() {
       </div>
 
       <Footer />
+
+      <TutorialModal
+        isOpen={showTutorial}
+        onClose={() => {
+          setShowTutorial(false);
+          router.push('/');
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

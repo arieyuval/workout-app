@@ -3,13 +3,15 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Link from 'next/link';
-import { LogOut, User, Bug, Mail } from 'lucide-react';
+import { LogOut, User, Bug, Mail, BookOpen } from 'lucide-react';
 import BugReportModal from './BugReportModal';
+import TutorialModal from './TutorialModal';
 
 export default function UserMenu() {
   const { user, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isBugReportOpen, setIsBugReportOpen] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   if (!user) return null;
 
@@ -64,6 +66,16 @@ export default function UserMenu() {
               Contact
             </Link>
             <button
+              onClick={() => {
+                setIsOpen(false);
+                setIsTutorialOpen(true);
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <BookOpen className="w-4 h-4" />
+              Tutorial
+            </button>
+            <button
               onClick={handleSignOut}
               className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
@@ -78,6 +90,12 @@ export default function UserMenu() {
       <BugReportModal
         isOpen={isBugReportOpen}
         onClose={() => setIsBugReportOpen(false)}
+      />
+
+      {/* Tutorial Modal */}
+      <TutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
       />
     </div>
   );
