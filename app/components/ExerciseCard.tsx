@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { ExerciseWithUserData, WorkoutSet } from '@/lib/types';
-import { ChevronRight, Plus, Pin, StickyNote, Target } from 'lucide-react';
+import { ChevronRight, Pin, StickyNote, Target } from 'lucide-react';
 import { getPrimaryMuscleGroup, getMuscleGroups } from '@/lib/muscle-utils';
 import { useWorkoutData } from '../context/WorkoutDataContext';
 
@@ -320,13 +320,15 @@ export default function ExerciseCard({ exercise, topSetLastSession, lastSet, cur
             onClick={(e) => e.stopPropagation()}
           >
             {showSuccess ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="hidden sm:inline text-sm">Done</span>
+              </>
             ) : (
-              <Plus className="w-4 h-4" />
+              <span className="text-sm font-medium px-1">Log</span>
             )}
-            <span className="hidden sm:inline text-sm">{showSuccess ? 'Done' : 'Add'}</span>
           </button>
         </div>
       </form>

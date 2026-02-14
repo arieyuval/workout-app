@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { ExerciseWithUserData, WorkoutSet } from '@/lib/types';
-import { ChevronRight, Plus, Pin, StickyNote } from 'lucide-react';
+import { ChevronRight, Pin, StickyNote } from 'lucide-react';
 import { getPrimaryMuscleGroup, getMuscleGroups } from '@/lib/muscle-utils';
 import TimeInput from './TimeInput';
 import { formatMinutesToTime } from '@/lib/time-utils';
@@ -160,7 +160,7 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, la
             </div>
             {lastSet ? (
               <div className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
-                {lastSet.distance} mi / {formatMinutesToTime(lastSet.duration)}
+                {lastSet.distance} mi / {formatMinutesToTime(lastSet.duration || 0)}
               </div>
             ) : (
               <div className="text-sm text-gray-400">-</div>
@@ -217,13 +217,15 @@ export default function CardioExerciseCard({ exercise, lastSet, bestDistance, la
             onClick={(e) => e.stopPropagation()}
           >
             {showSuccess ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="hidden sm:inline text-sm">Done</span>
+              </>
             ) : (
-              <Plus className="w-4 h-4" />
+              <span className="text-sm font-medium px-1">Log</span>
             )}
-            <span className="hidden sm:inline text-sm">{showSuccess ? 'Done' : 'Add'}</span>
           </button>
         </div>
       </form>
